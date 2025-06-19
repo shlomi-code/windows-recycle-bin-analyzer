@@ -1,0 +1,17 @@
+# Windows Recycle Bin Analyzer Dependencies
+# This project uses only Python standard library modules
+# No external dependencies required
+
+# The following modules are used (all part of Python standard library):
+# - os
+# - sys
+# - shutil
+# - struct
+# - datetime
+# - pathlib
+# - typing
+# - argparse
+# - csv
+
+# Python version requirement
+# Python 3.6+ is recommended for best compatibility 
