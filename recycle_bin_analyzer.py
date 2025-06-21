@@ -11,6 +11,7 @@ import sys
 import shutil
 import struct
 import datetime
+import subprocess
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 import argparse
@@ -22,7 +23,46 @@ class RecycleBinAnalyzer:
     def __init__(self):
         self.recycle_bin_path = self._get_recycle_bin_path()
         self.files_info = []
+        self.current_user_sid = self._get_current_user_sid()
         
+    def _get_current_user_sid(self) -> Optional[str]:
+        """Get the current user's SID using whoami command."""
+        try:
+            result = subprocess.run(['whoami', '/all'], 
+                                  capture_output=True, text=True, 
+                                  creationflags=subprocess.CREATE_NO_WINDOW)
+            if result.returncode == 0:
+                for line in result.stdout.split('\n'):
+                    if 'S-1-5-21-' in line and 'S-1-5-21-' in line.split():
+                        # Extract SID from the line
+                        parts = line.split()
+                        for part in parts:
+                            if part.startswith('S-1-5-21-'):
+                                return part
+        except Exception as e:
+            print(f"Warning: Could not get current user SID: {e}")
+        return None
+    
+    def _get_all_user_sids(self) -> List[str]:
+        """Get all local user SIDs using wmic command."""
+        sids = []
+        try:
+            result = subprocess.run(['wmic', 'useraccount', 'get', 'name,sid'], 
+                                  capture_output=True, text=True, 
+                                  creationflags=subprocess.CREATE_NO_WINDOW)
+            if result.returncode == 0:
+                lines = result.stdout.strip().split('\n')
+                for line in lines[1:]:  # Skip header
+                    if line.strip() and 'S-1-5-21-' in line:
+                        parts = line.split()
+                        for part in parts:
+                            if part.startswith('S-1-5-21-'):
+                                sids.append(part)
+                                break
+        except Exception as e:
+            print(f"Warning: Could not get user SIDs: {e}")
+        return sids
+    
     def _get_recycle_bin_path(self) -> Path:
         """Get the path to the Windows Recycle Bin."""
         # The Recycle Bin is typically located at C:\$Recycle.Bin
@@ -45,7 +85,7 @@ class RecycleBinAnalyzer:
         return Path("C:\\$Recycle.Bin")
     
     def _parse_info2_file(self, info2_path: Path) -> List[Dict]:
-        """Parse the INFO2 file to get metadata about deleted files."""
+        """Parse the INFO2 file to get metadata about deleted files (older Windows versions)."""
         files_info = []
         
         try:
@@ -109,97 +149,142 @@ class RecycleBinAnalyzer:
         # Look for INFO2 file (older Windows versions)
         info2_path = self.recycle_bin_path / "INFO2"
         if info2_path.exists():
+            print("Found INFO2 file (older Windows format)")
             files_info.extend(self._parse_info2_file(info2_path))
         
         # Scan SID folders (newer Windows versions)
+        print("Scanning SID-based folders...")
+        if self.current_user_sid:
+            print(f"Current user SID: {self.current_user_sid}")
+        
+        # Get all SID folders
+        sid_folders = []
         for item in self.recycle_bin_path.iterdir():
             if item.is_dir() and item.name.startswith('S-'):
-                # This is a user's Recycle Bin folder
-                self._scan_sid_folder(item, files_info)
+                sid_folders.append(item)
+        
+        print(f"Found {len(sid_folders)} SID folders")
+        
+        # Prioritize current user's folder, then scan others
+        if self.current_user_sid:
+            current_user_folder = self.recycle_bin_path / self.current_user_sid
+            if current_user_folder.exists():
+                print(f"Scanning current user folder: {self.current_user_sid}")
+                self._scan_sid_folder(current_user_folder, files_info)
+        
+        # Scan other SID folders
+        for sid_folder in sid_folders:
+            if not self.current_user_sid or sid_folder.name != self.current_user_sid:
+                print(f"Scanning SID folder: {sid_folder.name}")
+                self._scan_sid_folder(sid_folder, files_info)
         
         return files_info
     
     def _scan_sid_folder(self, sid_path: Path, files_info: List[Dict]):
         """Scan a specific user's Recycle Bin folder."""
         try:
-            for item in sid_path.iterdir():
-                if item.is_file():
-                    # Parse the filename to get original name and location
-                    file_info = self._parse_recycled_filename(item)
-                    if file_info:
-                        file_info['current_path'] = item
-                        file_info['file_size'] = item.stat().st_size
-                        file_info['delete_time'] = datetime.datetime.fromtimestamp(item.stat().st_mtime)
-                        files_info.append(file_info)
+            # Look for $I files (metadata files)
+            i_files = [f for f in sid_path.iterdir() if f.is_file() and f.name.startswith('$I')]
+            
+            if not i_files:
+                print(f"  No deleted files found in {sid_path.name}")
+                return
+            
+            print(f"  Found {len(i_files)} deleted files in {sid_path.name}")
+            
+            for i_file in i_files:
+                # Parse the metadata file
+                file_info = self._parse_metadata_file(i_file)
+                if file_info:
+                    file_info['sid_folder'] = sid_path.name
+                    files_info.append(file_info)
+                    
         except Exception as e:
             print(f"Error scanning SID folder {sid_path}: {e}")
     
-    def _parse_recycled_filename(self, file_path: Path) -> Optional[Dict]:
-        """Parse the recycled filename to extract original information."""
-        try:
-            # Recycled files have format: $I<original_name>.<extension>
-            filename = file_path.name
-            
-            if not filename.startswith('$I'):
-                return None
-            
-            # Look for corresponding $R file (the actual deleted file)
-            r_filename = filename.replace('$I', '$R')
-            r_file_path = file_path.parent / r_filename
-            
-            # Try to read the $I file for metadata
-            metadata = self._read_metadata_file(file_path)
-            
-            return {
-                'original_name': metadata.get('original_name', 'Unknown'),
-                'original_path': metadata.get('original_path', 'Unknown'),
-                'recycled_name': filename,
-                'actual_file_path': r_file_path if r_file_path.exists() else None,
-                'can_read_content': r_file_path.exists() and r_file_path.is_file()
-            }
-            
-        except Exception as e:
-            print(f"Error parsing recycled filename {file_path}: {e}")
-            return None
-    
-    def _read_metadata_file(self, metadata_path: Path) -> Dict:
-        """Read metadata from a $I file."""
-        metadata = {}
-        
+    def _parse_metadata_file(self, metadata_path: Path) -> Optional[Dict]:
+        """Parse a $I metadata file according to the documented format."""
         try:
             with open(metadata_path, 'rb') as f:
-                # Read header
-                header = f.read(8)
-                if len(header) >= 8:
-                    file_size = struct.unpack('<Q', header)[0]
-                    metadata['file_size'] = file_size
-                
-                # Read delete time
-                time_data = f.read(8)
-                if len(time_data) >= 8:
-                    delete_time = struct.unpack('<Q', time_data)[0]
-                    if delete_time > 0:
-                        delete_datetime = datetime.datetime(1601, 1, 1) + \
-                                        datetime.timedelta(microseconds=delete_time // 10)
-                        metadata['delete_time'] = delete_datetime
-                
-                # Read original path length
-                path_len_data = f.read(4)
-                if len(path_len_data) >= 4:
-                    path_len = struct.unpack('<I', path_len_data)[0]
+                # Skip any junk bytes (FF FE) before header
+                while True:
+                    pos = f.tell()
+                    header = f.read(8)
+                    if len(header) < 8:
+                        return None
                     
-                    # Read original path
-                    if path_len > 0:
-                        path_data = f.read(path_len * 2)  # UTF-16
-                        if len(path_data) >= path_len * 2:
-                            original_path = path_data.decode('utf-16le', errors='ignore')
-                            metadata['original_path'] = original_path
-                            metadata['original_name'] = Path(original_path).name
+                    # Check if this is the correct header (02 00 00 00 00 00 00 00)
+                    if header == b'\x02\x00\x00\x00\x00\x00\x00\x00':
+                        break
+                    elif header.startswith(b'\xff\xfe'):
+                        # Skip BOM and continue
+                        continue
+                    else:
+                        # Try next byte
+                        f.seek(pos + 1)
+                        if f.tell() > pos + 100:  # Limit search
+                            return None
+                
+                # Read file size (8 bytes, little endian)
+                size_data = f.read(8)
+                if len(size_data) < 8:
+                    return None
+                file_size = struct.unpack('<Q', size_data)[0]
+                
+                # Read deletion date (8 bytes, FILETIME format)
+                time_data = f.read(8)
+                if len(time_data) < 8:
+                    return None
+                delete_time = struct.unpack('<Q', time_data)[0]
+                
+                # Convert FILETIME to datetime
+                if delete_time > 0:
+                    # FILETIME is 100-nanosecond intervals since 1601-01-01
+                    delete_datetime = datetime.datetime(1601, 1, 1) + \
+                                    datetime.timedelta(microseconds=delete_time // 10)
+                else:
+                    delete_datetime = None
+                
+                # Read path length (4 bytes, little endian)
+                path_len_data = f.read(4)
+                if len(path_len_data) < 4:
+                    return None
+                path_len = struct.unpack('<I', path_len_data)[0]
+                
+                # Read original path (UTF-16, null-terminated)
+                if path_len > 0:
+                    path_data = f.read(path_len * 2)  # UTF-16 = 2 bytes per character
+                    if len(path_data) >= path_len * 2:
+                        # Remove null terminator if present
+                        if path_data.endswith(b'\x00\x00'):
+                            path_data = path_data[:-2]
+                        original_path = path_data.decode('utf-16le', errors='ignore')
+                        original_name = Path(original_path).name
+                    else:
+                        original_path = "Unknown"
+                        original_name = "Unknown"
+                else:
+                    original_path = "Unknown"
+                    original_name = "Unknown"
+                
+                # Look for corresponding $R file (the actual deleted file)
+                r_filename = metadata_path.name.replace('$I', '$R')
+                r_file_path = metadata_path.parent / r_filename
+                
+                return {
+                    'original_name': original_name,
+                    'original_path': original_path,
+                    'file_size': file_size,
+                    'delete_time': delete_datetime,
+                    'recycled_name': metadata_path.name,
+                    'actual_file_path': r_file_path if r_file_path.exists() else None,
+                    'can_read_content': r_file_path.exists() and r_file_path.is_file(),
+                    'metadata_file': metadata_path
+                }
                 
         except Exception as e:
-            print(f"Error reading metadata file {metadata_path}: {e}")
-        
-        return metadata
+            print(f"Error parsing metadata file {metadata_path}: {e}")
+            return None
     
     def analyze(self) -> List[Dict]:
         """Perform the complete Recycle Bin analysis."""
@@ -222,6 +307,8 @@ class RecycleBinAnalyzer:
             print(f"   Original Location: {file_info.get('original_path', 'Unknown')}")
             print(f"   File Size: {file_info.get('file_size', 0):,} bytes")
             print(f"   Delete Time: {file_info.get('delete_time', 'Unknown')}")
+            print(f"   SID Folder: {file_info.get('sid_folder', 'Unknown')}")
+            print(f"   Recycled Name: {file_info.get('recycled_name', 'Unknown')}")
             print(f"   Can Read Content: {file_info.get('can_read_content', False)}")
             
             if show_content and file_info.get('can_read_content') and file_info.get('actual_file_path'):
@@ -254,7 +341,7 @@ class RecycleBinAnalyzer:
         
         try:
             with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-                fieldnames = ['original_name', 'original_path', 'file_size', 'delete_time', 'can_read_content', 'recycled_name']
+                fieldnames = ['original_name', 'original_path', 'file_size', 'delete_time', 'sid_folder', 'recycled_name', 'can_read_content']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 
                 writer.writeheader()
@@ -265,8 +352,9 @@ class RecycleBinAnalyzer:
                         'original_path': file_info.get('original_path', ''),
                         'file_size': file_info.get('file_size', 0),
                         'delete_time': str(file_info.get('delete_time', '')),
-                        'can_read_content': file_info.get('can_read_content', False),
-                        'recycled_name': file_info.get('recycled_name', '')
+                        'sid_folder': file_info.get('sid_folder', ''),
+                        'recycled_name': file_info.get('recycled_name', ''),
+                        'can_read_content': file_info.get('can_read_content', False)
                     }
                     writer.writerow(row)
             
@@ -285,6 +373,8 @@ def main():
                        help='Maximum content length to display (default: 1000)')
     parser.add_argument('--export-csv', type=str, default='',
                        help='Export results to CSV file')
+    parser.add_argument('--show-sids', action='store_true',
+                       help='Show all user SIDs found on the system')
     
     args = parser.parse_args()
     
@@ -295,6 +385,15 @@ def main():
     
     # Create analyzer and run analysis
     analyzer = RecycleBinAnalyzer()
+    
+    # Show SIDs if requested
+    if args.show_sids:
+        print("User SIDs on this system:")
+        sids = analyzer._get_all_user_sids()
+        for sid in sids:
+            print(f"  {sid}")
+        print()
+    
     files_info = analyzer.analyze()
     
     # Display results
