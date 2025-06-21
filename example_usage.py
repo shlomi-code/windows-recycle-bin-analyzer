@@ -6,7 +6,9 @@ This script demonstrates how to use the RecycleBinAnalyzer class programmaticall
 to analyze the Recycle Bin and perform custom operations on the results.
 """
 
-from recycle_bin_analyzer import RecycleBinAnalyzer
+from src.analyzer import RecycleBinAnalyzer
+from src.reporting import export_to_csv, _display_file_content
+from src.sid import get_all_user_sids
 import sys
 
 
@@ -93,7 +95,7 @@ def main():
     
     # Example 6: Export to custom CSV with specific fields
     print("6. Exporting to CSV...")
-    analyzer.export_to_csv("example_analysis.csv")
+    export_to_csv(files_info, "example_analysis.csv")
     print("Export completed: example_analysis.csv")
     
     # Example 7: Show content preview for first readable text file
@@ -105,7 +107,7 @@ def main():
         print(f"File: {first_file.get('original_name', 'Unknown')}")
         print(f"Original Path: {first_file.get('original_path', 'Unknown')}")
         if first_file.get('actual_file_path'):
-            analyzer._display_file_content(first_file['actual_file_path'], 500)
+            _display_file_content(first_file['actual_file_path'], 500)
     else:
         print("No readable text files found.")
     
