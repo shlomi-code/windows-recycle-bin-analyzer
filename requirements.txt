@@ -2,6 +2,12 @@
 # This project uses only Python standard library modules
 # No external dependencies required
 
+# Required dependencies
+# Python 3.6+ is recommended for best compatibility
+
+# Optional dependencies (for better performance)
+pywin32>=305; sys_platform == "win32"
+
 # The following modules are used (all part of Python standard library):
 # - os
 # - sys
@@ -12,6 +18,7 @@
 # - typing
 # - argparse
 # - csv
+# - subprocess (fallback only)
 
-# Python version requirement
-# Python 3.6+ is recommended for best compatibility 
+# Note: pywin32 is optional but recommended for better performance.
+# The script will fall back to subprocess calls if pywin32 is not available. 

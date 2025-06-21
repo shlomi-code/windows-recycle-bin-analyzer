@@ -6,6 +6,7 @@ A comprehensive Python tool for analyzing the Windows Recycle Bin directory. Thi
 
 - **Complete Recycle Bin Analysis**: Scans all drives for Recycle Bin directories
 - **SID-Based User Detection**: Automatically detects current user SID and prioritizes their Recycle Bin folder
+- **Windows API Integration**: Uses native Windows API calls for better performance (with subprocess fallback)
 - **File Information Extraction**: Retrieves original file names and locations
 - **Accurate Metadata Parsing**: Properly parses $I metadata files according to Windows specifications
 - **Content Reading**: Can read and display content from text files in the Recycle Bin
@@ -18,13 +19,17 @@ A comprehensive Python tool for analyzing the Windows Recycle Bin directory. Thi
 
 - Windows operating system
 - Python 3.6 or higher
-- No external dependencies (uses only Python standard library)
+- **Optional**: `pywin32` package for better performance (Windows API calls instead of subprocess)
 
 ## Installation
 
 1. Clone or download this repository
 2. Ensure you have Python 3.6+ installed
-3. No additional installation required - all dependencies are part of Python's standard library
+3. **Optional**: Install pywin32 for better performance:
+   ```bash
+   pip install pywin32
+   ```
+4. No additional installation required - all dependencies are part of Python's standard library
 
 ## Usage
 
