@@ -198,6 +198,10 @@ This project is open source and available under the MIT License.
 
 Contributions are welcome! Please feel free to submit issues, feature requests, or pull requests.
 
+## Bibliography
+
+- [Windows Recycle Bin Information File Binary Format](https://stackoverflow.com/questions/66939004/windows-recycle-bin-information-file-binary-format) - Stack Overflow discussion on the binary format of Windows Recycle Bin metadata files
+
 ## Disclaimer
 
 This tool is provided for educational and legitimate forensic purposes only. Always ensure you have proper authorization before analyzing Recycle Bin contents, especially in professional or legal contexts. 
