@@ -3,6 +3,28 @@ import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
 
+def _filetime_to_datetime(filetime: int) -> Optional[datetime.datetime]:
+    """Convert Windows FILETIME to datetime with proper timezone handling."""
+    if filetime <= 0:
+        return None
+    
+    # Windows FILETIME is in 100-nanosecond intervals since 1601-01-01 UTC
+    # Convert to seconds since 1601-01-01
+    seconds_since_1601 = filetime // 10000000
+    
+    # Convert to seconds since Unix epoch (1970-01-01)
+    # Unix epoch is 11644473600 seconds after Windows epoch
+    seconds_since_1970 = seconds_since_1601 - 11644473600
+    
+    # Create UTC datetime
+    utc_datetime = datetime.datetime.utcfromtimestamp(seconds_since_1970)
+    
+    # Convert to local timezone
+    local_datetime = utc_datetime.replace(tzinfo=datetime.timezone.utc).astimezone()
+    
+    # Return naive datetime in local timezone
+    return local_datetime.replace(tzinfo=None)
+
 def parse_info2_file(info2_path: Path) -> List[Dict]:
     """Parse the INFO2 file to get metadata about deleted files (older Windows versions)."""
     files_info = []
@@ -36,12 +58,7 @@ def parse_info2_file(info2_path: Path) -> List[Dict]:
                     original_name = name_bytes.decode('utf-16le', errors='ignore')
                 
                 # Convert Windows file time to datetime
-                if delete_time > 0:
-                    # Windows file time is in 100-nanosecond intervals since 1601-01-01
-                    delete_datetime = datetime.datetime(1601, 1, 1) + \
-                                    datetime.timedelta(microseconds=delete_time // 10)
-                else:
-                    delete_datetime = None
+                delete_datetime = _filetime_to_datetime(delete_time)
                 
                 files_info.append({
                     'original_name': original_name,
@@ -91,12 +108,7 @@ def parse_metadata_file(metadata_path: Path) -> Optional[Dict]:
             delete_time = struct.unpack('<Q', time_data)[0]
             
             # Convert FILETIME to datetime
-            if delete_time > 0:
-                # FILETIME is 100-nanosecond intervals since 1601-01-01
-                delete_datetime = datetime.datetime(1601, 1, 1) + \
-                                datetime.timedelta(microseconds=delete_time // 10)
-            else:
-                delete_datetime = None
+            delete_datetime = _filetime_to_datetime(delete_time)
             
             # Read path length (4 bytes, little endian)
             path_len_data = f.read(4)
