@@ -113,6 +113,9 @@ Desktop.ini
 .AppleDouble
 .LSOverride
 
+# CSV files
+*.csv
+
 # Other
 *.bak
 *.swp
