@@ -14,6 +14,7 @@ A comprehensive Python tool for analyzing the Windows Recycle Bin directory. Thi
 - **Cross-Drive Support**: Automatically detects Recycle Bin locations on multiple drives
 - **Windows Version Compatibility**: Works with both older (INFO2) and newer (SID-based) Recycle Bin formats
 - **User SID Management**: Shows all user SIDs and their Recycle Bin contents
+- **Username Resolution**: Resolves SIDs to human-readable usernames using Windows API
 
 ## Requirements
 
@@ -41,7 +42,17 @@ Run the script to analyze your Recycle Bin:
 python recycle_bin_analyzer.py
 ```
 
-### Advanced Usage
+### Command Line Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--show-content` | Display content preview for text files | False |
+| `--max-content-length N` | Maximum number of characters to display for content preview | 1000 |
+| `--export-csv FILENAME` | Export results to specified CSV file | Auto-export if files found |
+| `--show-sids` | Show all user SIDs found on the system | False |
+| `-h, --help` | Show help message | - |
+
+### Advanced Usage Examples
 
 #### Show file content previews:
 ```bash
@@ -53,7 +64,7 @@ python recycle_bin_analyzer.py --show-content
 python recycle_bin_analyzer.py --show-content --max-content-length 2000
 ```
 
-#### Export results to CSV:
+#### Export results to specific CSV file:
 ```bash
 python recycle_bin_analyzer.py --export-csv my_analysis.csv
 ```
@@ -63,18 +74,15 @@ python recycle_bin_analyzer.py --export-csv my_analysis.csv
 python recycle_bin_analyzer.py --show-sids
 ```
 
-#### Combine options:
+#### Combine multiple options:
 ```bash
 python recycle_bin_analyzer.py --show-content --max-content-length 1500 --export-csv results.csv --show-sids
 ```
 
-## Command Line Options
-
-- `--show-content`: Display content preview for text files
-- `--max-content-length N`: Maximum number of characters to display for content preview (default: 1000)
-- `--export-csv FILENAME`: Export results to specified CSV file
-- `--show-sids`: Show all user SIDs found on the system
-- `-h, --help`: Show help message
+#### Get help:
+```bash
+python recycle_bin_analyzer.py --help
+```
 
 ## Output Information
 
@@ -83,11 +91,185 @@ For each deleted file, the analyzer provides:
 - **Original Name**: The original filename before deletion
 - **Original Location**: The full path where the file was originally located
 - **File Size**: Size of the deleted file in bytes
-- **Delete Time**: When the file was deleted (FILETIME format)
+- **Delete Time**: When the file was deleted (local timezone)
 - **SID Folder**: Which user's Recycle Bin folder contains the file
+- **Username**: Human-readable username associated with the SID
 - **Recycled Name**: The $I metadata filename in the Recycle Bin
 - **Can Read Content**: Whether the file content can be read
 - **Content Preview**: (Optional) Preview of text file contents
+
+## Example Output
+
+### Basic Analysis
+```bash
+python recycle_bin_analyzer.py
+```
+
+**Output:**
+```
+Windows Recycle Bin Analyzer
+Windows API available: True (requires pywin32)
+
+Starting Windows Recycle Bin analysis...
+Scanning Recycle Bin at: C:\$Recycle.Bin
+Scanning SID-based folders...
+Current user SID: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+Found 2 SID folders
+Scanning current user folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+  Found 3 deleted files in S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+Scanning SID folder: S-1-5-21-1234567890-1234567890-1234567890-1000 (Administrator)
+  No deleted files found in S-1-5-21-1234567890-1234567890-1234567890-1000 (Administrator)
+
+Found 3 deleted files:
+================================================================================
+
+1. File Information:
+   Original Name: document.txt
+   Original Location: C:\Users\username\Documents\document.txt
+   File Size: 1,024 bytes
+   Delete Time: 2024-01-15 14:30:25
+   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+   Recycled Name: $I123456.txt
+   Can Read Content: True
+
+2. File Information:
+   Original Name: image.jpg
+   Original Location: C:\Users\username\Pictures\image.jpg
+   File Size: 2,048,576 bytes
+   Delete Time: 2024-01-15 13:45:12
+   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+   Recycled Name: $I123457.jpg
+   Can Read Content: False
+
+3. File Information:
+   Original Name: notes.txt
+   Original Location: C:\Users\username\Desktop\notes.txt
+   File Size: 512 bytes
+   Delete Time: 2024-01-15 12:20:33
+   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+   Recycled Name: $I123458.txt
+   Can Read Content: True
+
+Analysis complete. Results exported to: recycle_bin_analysis.csv
+```
+
+### With Content Preview
+```bash
+python recycle_bin_analyzer.py --show-content --max-content-length 500
+```
+
+**Output:**
+```
+Windows Recycle Bin Analyzer
+Windows API available: True (requires pywin32)
+
+Starting Windows Recycle Bin analysis...
+Scanning Recycle Bin at: C:\$Recycle.Bin
+Scanning SID-based folders...
+Current user SID: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+Found 2 SID folders
+Scanning current user folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+  Found 3 deleted files in S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+Scanning SID folder: S-1-5-21-1234567890-1234567890-1234567890-1000 (Administrator)
+  No deleted files found in S-1-5-21-1234567890-1234567890-1234567890-1000 (Administrator)
+
+Found 3 deleted files:
+================================================================================
+
+1. File Information:
+   Original Name: document.txt
+   Original Location: C:\Users\username\Documents\document.txt
+   File Size: 1,024 bytes
+   Delete Time: 2024-01-15 14:30:25
+   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+   Recycled Name: $I123456.txt
+   Can Read Content: True
+   
+   Content Preview:
+   ----------------------------------------
+   This is a sample document that was deleted.
+   It contains some text content that can be read
+   from the Recycle Bin.
+   
+   The file was originally located in the Documents
+   folder and contains important information.
+   ----------------------------------------
+
+2. File Information:
+   Original Name: image.jpg
+   Original Location: C:\Users\username\Pictures\image.jpg
+   File Size: 2,048,576 bytes
+   Delete Time: 2024-01-15 13:45:12
+   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+   Recycled Name: $I123457.jpg
+   Can Read Content: False
+   
+   Content Preview: [Binary file - content not displayed]
+
+3. File Information:
+   Original Name: notes.txt
+   Original Location: C:\Users\username\Desktop\notes.txt
+   File Size: 512 bytes
+   Delete Time: 2024-01-15 12:20:33
+   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
+   Recycled Name: $I123458.txt
+   Can Read Content: True
+   
+   Content Preview:
+   ----------------------------------------
+   Quick notes:
+   - Meeting at 3 PM
+   - Call John about project
+   - Review quarterly report
+   ----------------------------------------
+
+Analysis complete. Results exported to: recycle_bin_analysis.csv
+```
+
+### Show All User SIDs
+```bash
+python recycle_bin_analyzer.py --show-sids
+```
+
+**Output:**
+```
+Windows Recycle Bin Analyzer
+Windows API available: True (requires pywin32)
+
+User SIDs on this system:
+--------------------------------------------------
+  username (S-1-5-21-1234567890-1234567890-1234567890-1001)
+  Administrator (S-1-5-21-1234567890-1234567890-1234567890-500)
+  SYSTEM (S-1-5-18)
+  NETWORK SERVICE (S-1-5-20)
+  LOCAL SERVICE (S-1-5-19)
+
+Starting Windows Recycle Bin analysis...
+[rest of analysis output...]
+```
+
+### Help Output
+```bash
+python recycle_bin_analyzer.py --help
+```
+
+**Output:**
+```
+usage: recycle_bin_analyzer.py [-h] [--show-content] [--max-content-length MAX_CONTENT_LENGTH] [--export-csv EXPORT_CSV] [--show-sids]
+
+Windows Recycle Bin Analyzer
+
+options:
+  -h, --help            show this help message and exit
+  --show-content        Show content preview for text files
+  --max-content-length MAX_CONTENT_LENGTH
+                        Maximum content length to display (default: 1000)
+  --export-csv EXPORT_CSV
+                        Export results to CSV file
+  --show-sids           Show all user SIDs found on the system
+
+Windows API available: True (requires pywin32)
+```
 
 ## How It Works
 
@@ -143,33 +325,6 @@ The `$I` metadata files follow this binary format:
 - Very large files may take time to process
 - Dangling SID folders (from deleted users) may appear empty
 
-## Example Output
-
-```
-Starting Windows Recycle Bin analysis...
-Scanning Recycle Bin at: C:\$Recycle.Bin
-Scanning SID-based folders...
-Current user SID: S-1-5-21-1234567890-1234567890-1234567890-1001
-Found 2 SID folders
-Scanning current user folder: S-1-5-21-1234567890-1234567890-1234567890-1001
-  Found 3 deleted files in S-1-5-21-1234567890-1234567890-1234567890-1001
-Scanning SID folder: S-1-5-21-1234567890-1234567890-1234567890-1000
-  No deleted files found in S-1-5-21-1234567890-1234567890-1234567890-1000
-
-Found 3 deleted files:
-================================================================================
-
-1. File Information:
-   Original Name: document.txt
-   Original Location: C:\Users\username\Documents\document.txt
-   File Size: 1,024 bytes
-   Delete Time: 2024-01-15 14:30:25
-   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001
-   Recycled Name: $I123456.txt
-   Can Read Content: True
-   ----------------------------------------
-```
-
 ## Troubleshooting
 
 ### Common Issues
@@ -200,7 +355,7 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 
 ## Bibliography
 
-- [Windows Recycle Bin Information File Binary Format](https://stackoverflow.com/questions/66939004/windows-recycle-bin-information-file-binary-format) - Stack Overflow discussion on the binary format of Windows Recycle Bin metadata files
+- [Stack Overflow: How to parse Windows Recycle Bin $I files](https://stackoverflow.com/questions/14720557/how-to-parse-windows-recycle-bin-i-files)
 
 ## Disclaimer
 
