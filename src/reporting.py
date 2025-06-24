@@ -17,7 +17,11 @@ def display_results(files_info: List[Dict], show_content: bool = False, max_cont
         print(f"   Original Location: {file_info.get('original_path', 'Unknown')}")
         print(f"   File Size: {file_info.get('file_size', 0):,} bytes")
         print(f"   Delete Time: {file_info.get('delete_time', 'Unknown')}")
-        print(f"   SID Folder: {file_info.get('sid_folder', 'Unknown')}")
+        
+        # Display user-friendly SID information
+        sid_display = file_info.get('sid_display', file_info.get('sid_folder', 'Unknown'))
+        print(f"   User: {sid_display}")
+        
         print(f"   Recycled Name: {file_info.get('recycled_name', 'Unknown')}")
         print(f"   Can Read Content: {file_info.get('can_read_content', False)}")
         
@@ -49,7 +53,7 @@ def export_to_csv(files_info: List[Dict], output_file: str = "recycle_bin_analys
     """Export the analysis results to a CSV file."""
     try:
         with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['original_name', 'original_path', 'file_size', 'delete_time', 'sid_folder', 'recycled_name', 'can_read_content']
+            fieldnames = ['original_name', 'original_path', 'file_size', 'delete_time', 'sid_folder', 'sid_display', 'recycled_name', 'can_read_content']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             
             writer.writeheader()
@@ -61,6 +65,7 @@ def export_to_csv(files_info: List[Dict], output_file: str = "recycle_bin_analys
                     'file_size': file_info.get('file_size', 0),
                     'delete_time': str(file_info.get('delete_time', '')),
                     'sid_folder': file_info.get('sid_folder', ''),
+                    'sid_display': file_info.get('sid_display', file_info.get('sid_folder', '')),
                     'recycled_name': file_info.get('recycled_name', ''),
                     'can_read_content': file_info.get('can_read_content', False)
                 }

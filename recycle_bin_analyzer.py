@@ -11,7 +11,7 @@ import argparse
 
 from src.analyzer import RecycleBinAnalyzer
 from src.reporting import display_results, export_to_csv
-from src.sid import get_all_user_sids, WINDOWS_API_AVAILABLE
+from src.sid import get_all_user_sids, get_sid_info, WINDOWS_API_AVAILABLE
 
 
 def main():
@@ -42,9 +42,17 @@ def main():
     # Show SIDs if requested
     if args.show_sids:
         print("User SIDs on this system:")
+        print("-" * 50)
         sids = get_all_user_sids()
         for sid in sids:
-            print(f"  {sid}")
+            sid_info = get_sid_info(sid)
+            if sid_info['username']:
+                if sid_info['description']:
+                    print(f"  {sid_info['username']} ({sid_info['description']})")
+                else:
+                    print(f"  {sid_info['username']} ({sid})")
+            else:
+                print(f"  {sid}")
         print()
     
     files_info = analyzer.analyze()

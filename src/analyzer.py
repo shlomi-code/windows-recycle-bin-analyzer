@@ -12,6 +12,7 @@ class RecycleBinAnalyzer:
         self.recycle_bin_path = self._get_recycle_bin_path()
         self.files_info: List[Dict] = []
         self.current_user_sid = sid.get_current_user_sid()
+        self.sid_cache = {}  # Cache for SID to username resolution
         
     def _get_recycle_bin_path(self) -> Path:
         """Get the path to the Windows Recycle Bin."""
@@ -33,6 +34,19 @@ class RecycleBinAnalyzer:
                 
         # Fallback to C: drive
         return Path("C:\\$Recycle.Bin")
+    
+    def _get_sid_display_name(self, sid_string: str) -> str:
+        """Get a user-friendly display name for a SID."""
+        if sid_string not in self.sid_cache:
+            sid_info = sid.get_sid_info(sid_string)
+            if sid_info['username']:
+                if sid_info['description']:
+                    self.sid_cache[sid_string] = f"{sid_info['username']} ({sid_info['description']})"
+                else:
+                    self.sid_cache[sid_string] = f"{sid_info['username']} ({sid_string})"
+            else:
+                self.sid_cache[sid_string] = sid_string
+        return self.sid_cache[sid_string]
     
     def analyze(self) -> List[Dict]:
         """Perform the complete Recycle Bin analysis."""
@@ -59,7 +73,8 @@ class RecycleBinAnalyzer:
         # Scan SID folders (newer Windows versions)
         print("Scanning SID-based folders...")
         if self.current_user_sid:
-            print(f"Current user SID: {self.current_user_sid}")
+            current_user_display = self._get_sid_display_name(self.current_user_sid)
+            print(f"Current user: {current_user_display}")
         
         # Get all SID folders
         sid_folders = []
@@ -73,13 +88,15 @@ class RecycleBinAnalyzer:
         if self.current_user_sid:
             current_user_folder = self.recycle_bin_path / self.current_user_sid
             if current_user_folder.exists():
-                print(f"Scanning current user folder: {self.current_user_sid}")
+                current_user_display = self._get_sid_display_name(self.current_user_sid)
+                print(f"Scanning current user folder: {current_user_display}")
                 self._scan_sid_folder(current_user_folder, files_info)
         
         # Scan other SID folders
         for sid_folder in sid_folders:
             if not self.current_user_sid or sid_folder.name != self.current_user_sid:
-                print(f"Scanning SID folder: {sid_folder.name}")
+                sid_display = self._get_sid_display_name(sid_folder.name)
+                print(f"Scanning SID folder: {sid_display}")
                 self._scan_sid_folder(sid_folder, files_info)
         
         return files_info
@@ -91,16 +108,19 @@ class RecycleBinAnalyzer:
             i_files = [f for f in sid_path.iterdir() if f.is_file() and f.name.startswith('$I')]
             
             if not i_files:
-                print(f"  No deleted files found in {sid_path.name}")
+                sid_display = self._get_sid_display_name(sid_path.name)
+                print(f"  No deleted files found in {sid_display}")
                 return
             
-            print(f"  Found {len(i_files)} deleted files in {sid_path.name}")
+            sid_display = self._get_sid_display_name(sid_path.name)
+            print(f"  Found {len(i_files)} deleted files in {sid_display}")
             
             for i_file in i_files:
                 # Parse the metadata file
                 file_info = parsers.parse_metadata_file(i_file)
                 if file_info:
                     file_info['sid_folder'] = sid_path.name
+                    file_info['sid_display'] = sid_display
                     files_info.append(file_info)
                     
         except Exception as e:
