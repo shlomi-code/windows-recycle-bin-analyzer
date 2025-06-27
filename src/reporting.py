@@ -240,6 +240,8 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             margin-top: 20px;
             background-color: white;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
         }}
         th {{
             background-color: #2196F3;
@@ -249,6 +251,9 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             cursor: pointer;
             user-select: none;
             position: relative;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
         }}
         th:hover {{
             background-color: #1976D2;
@@ -271,16 +276,21 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             padding: 10px 8px;
             border-bottom: 1px solid #ddd;
             vertical-align: top;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
         }}
         tr:hover {{
             background-color: #f8f9fa;
         }}
         .file-size {{
             text-align: right;
-            font-family: monospace;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
         }}
         .can-read {{
             text-align: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
         }}
         .can-read.true {{
             color: #4CAF50;
@@ -292,8 +302,8 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
         .path-cell {{
             max-width: 300px;
             word-wrap: break-word;
-            font-family: monospace;
-            font-size: 0.9em;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
         }}
         .no-data {{
             text-align: center;
@@ -335,14 +345,6 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             <div class="stat-item">
                 <div class="stat-label">Total Size:</div>
                 <div class="stat-value">{total_size}</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">Text Files:</div>
-                <div class="stat-value">{text_files}</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">Binary Files:</div>
-                <div class="stat-value">{binary_files}</div>
             </div>
             <div class="stat-item">
                 <div class="stat-label">Unique Users:</div>
@@ -549,6 +551,12 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             can_read_class = "true" if can_read else "false"
             can_read_text = "Yes" if can_read else "No"
             
+            # Extract username only (remove SID if present)
+            username = file_info.get('sid_display', '')
+            if username and '(' in username and ')' in username:
+                # Extract username from format like "username (SID)"
+                username = username.split('(')[0].strip()
+            
             row = f"""
                 <tr>
                     <td>{file_info.get('original_name', '')}</td>
@@ -556,7 +564,7 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
                     <td class="file-size">{formatted_size}</td>
                     <td>{delete_time}</td>
                     <td class="path-cell">{file_info.get('sid_folder', '')}</td>
-                    <td>{file_info.get('sid_display', '')}</td>
+                    <td>{username}</td>
                     <td>{file_info.get('recycled_name', '')}</td>
                     <td class="can-read {can_read_class}">{can_read_text}</td>
                 </tr>"""
