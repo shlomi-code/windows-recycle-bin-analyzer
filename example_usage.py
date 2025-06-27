@@ -8,7 +8,7 @@ and shows different export options.
 
 import json
 from src.analyzer import RecycleBinAnalyzer
-from src.reporting import display_results, export_to_csv, export_to_json
+from src.reporting import display_results, export_to_csv, export_to_json, export_to_html
 from src.sid import get_all_user_sids
 import sys
 
@@ -50,8 +50,12 @@ def main():
     print("\n3. Exporting to JSON:")
     export_to_json(files_info, "example_analysis.json")
     
-    # Example 4: Load and process JSON data
-    print("\n4. Loading JSON data for processing:")
+    # Example 4: Export to HTML
+    print("\n4. Exporting to HTML:")
+    export_to_html(files_info, "example_analysis.html")
+    
+    # Example 5: Load and process JSON data
+    print("\n5. Loading JSON data for processing:")
     try:
         with open("example_analysis.json", 'r', encoding='utf-8') as f:
             json_data = json.load(f)

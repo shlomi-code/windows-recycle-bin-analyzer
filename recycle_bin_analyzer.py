@@ -10,7 +10,7 @@ import sys
 import argparse
 
 from src.analyzer import RecycleBinAnalyzer
-from src.reporting import display_results, export_to_csv, export_to_json
+from src.reporting import display_results, export_to_csv, export_to_json, export_to_html
 from src.sid import get_all_user_sids, get_sid_info, WINDOWS_API_AVAILABLE
 
 
@@ -28,6 +28,8 @@ def main():
                        help='Export results to CSV file')
     parser.add_argument('--export-json', type=str, default='',
                        help='Export results to JSON file')
+    parser.add_argument('--export-html', type=str, default='',
+                       help='Export results to HTML file with sortable table')
     parser.add_argument('--show-sids', action='store_true',
                        help='Show all user SIDs found on the system')
     
@@ -75,6 +77,12 @@ def main():
         export_to_json(files_info, args.export_json)
     elif files_info and not args.export_csv:  # Auto-export JSON if no CSV export specified
         export_to_json(files_info)
+    
+    # Export to HTML if requested
+    if args.export_html:
+        export_to_html(files_info, args.export_html)
+    elif files_info and not args.export_csv and not args.export_json:  # Auto-export HTML if no other export specified
+        export_to_html(files_info)
 
 
 if __name__ == "__main__":

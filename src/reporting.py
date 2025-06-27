@@ -113,4 +113,339 @@ def export_to_json(files_info: List[Dict], output_file: str = "recycle_bin_analy
         print(f"\nAnalysis exported to JSON: {output_file}")
         
     except Exception as e:
-        print(f"Error exporting to JSON: {e}") 
+        print(f"Error exporting to JSON: {e}")
+
+def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analysis.html"):
+    """Export the analysis results to an HTML file with sortable table."""
+    try:
+        # HTML template with embedded CSS and JavaScript
+        html_template = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Recycle Bin Analysis</title>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }}
+        h1 {{
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }}
+        .analysis-info {{
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }}
+        .analysis-info p {{
+            margin: 5px 0;
+            color: #333;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }}
+        th {{
+            background-color: #2196F3;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }}
+        th:hover {{
+            background-color: #1976D2;
+        }}
+        th::after {{
+            content: '↕';
+            position: absolute;
+            right: 8px;
+            opacity: 0.7;
+        }}
+        th.sort-asc::after {{
+            content: '↑';
+            opacity: 1;
+        }}
+        th.sort-desc::after {{
+            content: '↓';
+            opacity: 1;
+        }}
+        td {{
+            padding: 10px 8px;
+            border-bottom: 1px solid #ddd;
+            vertical-align: top;
+        }}
+        tr:hover {{
+            background-color: #f8f9fa;
+        }}
+        .file-size {{
+            text-align: right;
+            font-family: monospace;
+        }}
+        .can-read {{
+            text-align: center;
+        }}
+        .can-read.true {{
+            color: #4CAF50;
+            font-weight: bold;
+        }}
+        .can-read.false {{
+            color: #f44336;
+        }}
+        .path-cell {{
+            max-width: 300px;
+            word-wrap: break-word;
+            font-family: monospace;
+            font-size: 0.9em;
+        }}
+        .no-data {{
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }}
+        .search-box {{
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }}
+        .stats {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }}
+        .stat-item {{
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 5px;
+            border-left: 3px solid #2196F3;
+        }}
+        .stat-label {{
+            font-weight: bold;
+            color: #333;
+        }}
+        .stat-value {{
+            color: #666;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Windows Recycle Bin Analysis</h1>
+        
+        <div class="analysis-info">
+            <p><strong>Analysis Timestamp:</strong> {timestamp}</p>
+            <p><strong>Total Files:</strong> {total_files}</p>
+            <p><strong>Export Format:</strong> HTML</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">Total Size:</div>
+                <div class="stat-value">{total_size}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Text Files:</div>
+                <div class="stat-value">{text_files}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Binary Files:</div>
+                <div class="stat-value">{binary_files}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Unique Users:</div>
+                <div class="stat-value">{unique_users}</div>
+            </div>
+        </div>
+
+        <input type="text" id="searchBox" class="search-box" placeholder="Search files... (type to filter)">
+
+        <table id="dataTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">Original Name</th>
+                    <th onclick="sortTable(1)">Original Path</th>
+                    <th onclick="sortTable(2)">File Size</th>
+                    <th onclick="sortTable(3)">Delete Time</th>
+                    <th onclick="sortTable(4)">SID Folder</th>
+                    <th onclick="sortTable(5)">Username</th>
+                    <th onclick="sortTable(6)">Recycled Name</th>
+                    <th onclick="sortTable(7)">Can Read Content</th>
+                </tr>
+            </thead>
+            <tbody>
+                {table_rows}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let currentSort = {{ column: -1, direction: 'asc' }};
+        let originalData = [];
+
+        // Initialize the table
+        document.addEventListener('DOMContentLoaded', function() {{
+            // Store original data for filtering
+            const tbody = document.querySelector('#dataTable tbody');
+            const rows = tbody.querySelectorAll('tr');
+            originalData = Array.from(rows).map(row => row.innerHTML);
+            
+            // Add search functionality
+            document.getElementById('searchBox').addEventListener('input', filterTable);
+        }});
+
+        function sortTable(columnIndex) {{
+            const table = document.getElementById('dataTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const header = table.querySelector('thead tr').children[columnIndex];
+            
+            // Clear previous sort indicators
+            table.querySelectorAll('th').forEach(th => {{
+                th.classList.remove('sort-asc', 'sort-desc');
+            }});
+            
+            // Determine sort direction
+            let direction = 'asc';
+            if (currentSort.column === columnIndex && currentSort.direction === 'asc') {{
+                direction = 'desc';
+            }}
+            
+            // Update sort indicator
+            header.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+            currentSort = {{ column: columnIndex, direction: direction }};
+            
+            // Sort rows
+            rows.sort((a, b) => {{
+                let aValue = a.children[columnIndex].textContent.trim();
+                let bValue = b.children[columnIndex].textContent.trim();
+                
+                // Handle different data types
+                if (columnIndex === 2) {{ // File Size
+                    aValue = parseInt(aValue.replace(/[^0-9]/g, '')) || 0;
+                    bValue = parseInt(bValue.replace(/[^0-9]/g, '')) || 0;
+                    return direction === 'asc' ? aValue - bValue : bValue - aValue;
+                }} else if (columnIndex === 3) {{ // Delete Time
+                    aValue = new Date(aValue);
+                    bValue = new Date(bValue);
+                    return direction === 'asc' ? aValue - bValue : bValue - aValue;
+                }} else {{ // String values
+                    aValue = aValue.toLowerCase();
+                    bValue = bValue.toLowerCase();
+                    if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+                    if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+                    return 0;
+                }}
+            }});
+            
+            // Reorder rows
+            rows.forEach(row => tbody.appendChild(row));
+        }}
+
+        function filterTable() {{
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const tbody = document.querySelector('#dataTable tbody');
+            const rows = tbody.querySelectorAll('tr');
+            
+            rows.forEach((row, index) => {{
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {{
+                    row.style.display = '';
+                }} else {{
+                    row.style.display = 'none';
+                }}
+            }});
+        }}
+
+        function formatFileSize(bytes) {{
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            if (bytes === 0) return '0 B';
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+        }}
+    </script>
+</body>
+</html>"""
+
+        # Calculate statistics
+        total_size = sum(file_info.get('file_size', 0) for file_info in files_info)
+        text_files = sum(1 for file_info in files_info if file_info.get('can_read_content', False))
+        binary_files = len(files_info) - text_files
+        unique_users = len(set(file_info.get('sid_display', '') for file_info in files_info))
+
+        # Generate table rows
+        table_rows = ""
+        for file_info in files_info:
+            # Format file size
+            file_size = file_info.get('file_size', 0)
+            formatted_size = f"{file_size:,} bytes"
+            
+            # Format delete time
+            delete_time = str(file_info.get('delete_time', ''))
+            
+            # Format can_read_content
+            can_read = file_info.get('can_read_content', False)
+            can_read_class = "true" if can_read else "false"
+            can_read_text = "Yes" if can_read else "No"
+            
+            row = f"""
+                <tr>
+                    <td>{file_info.get('original_name', '')}</td>
+                    <td class="path-cell">{file_info.get('original_path', '')}</td>
+                    <td class="file-size">{formatted_size}</td>
+                    <td>{delete_time}</td>
+                    <td class="path-cell">{file_info.get('sid_folder', '')}</td>
+                    <td>{file_info.get('sid_display', '')}</td>
+                    <td>{file_info.get('recycled_name', '')}</td>
+                    <td class="can-read {can_read_class}">{can_read_text}</td>
+                </tr>"""
+            table_rows += row
+
+        if not table_rows:
+            table_rows = '<tr><td colspan="8" class="no-data">No deleted files found in the Recycle Bin.</td></tr>'
+
+        # Format total size
+        formatted_total_size = f"{total_size:,} bytes ({total_size / (1024*1024):.2f} MB)"
+
+        # Generate HTML content
+        html_content = html_template.format(
+            timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            total_files=len(files_info),
+            total_size=formatted_total_size,
+            text_files=text_files,
+            binary_files=binary_files,
+            unique_users=unique_users,
+            table_rows=table_rows
+        )
+
+        # Write to HTML file
+        with open(output_file, 'w', encoding='utf-8') as htmlfile:
+            htmlfile.write(html_content)
+
+        print(f"\nAnalysis exported to HTML: {output_file}")
+
+    except Exception as e:
+        print(f"Error exporting to HTML: {e}") 

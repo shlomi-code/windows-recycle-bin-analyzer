@@ -12,6 +12,7 @@ A comprehensive Python tool for analyzing the Windows Recycle Bin directory. Thi
 - **Content Reading**: Can read and display content from text files in the Recycle Bin
 - **CSV Export**: Export analysis results to CSV format for further processing
 - **JSON Export**: Export analysis results to JSON format for programmatic access
+- **HTML Export**: Export analysis results to HTML format with interactive sortable table
 - **Cross-Drive Support**: Automatically detects Recycle Bin locations on multiple drives
 - **Windows Version Compatibility**: Works with both older (INFO2) and newer (SID-based) Recycle Bin formats
 - **User SID Management**: Shows all user SIDs and their Recycle Bin contents
@@ -51,6 +52,7 @@ python recycle_bin_analyzer.py
 | `--max-content-length N` | Maximum number of characters to display for content preview | 1000 |
 | `--export-csv FILENAME` | Export results to specified CSV file | Auto-export if files found |
 | `--export-json FILENAME` | Export results to specified JSON file | Auto-export if files found |
+| `--export-html FILENAME` | Export results to specified HTML file with sortable table | Auto-export if files found |
 | `--show-sids` | Show all user SIDs found on the system | False |
 | `-h, --help` | Show help message | - |
 
@@ -76,6 +78,11 @@ python recycle_bin_analyzer.py --export-csv my_analysis.csv
 python recycle_bin_analyzer.py --export-json my_analysis.json
 ```
 
+#### Export results to specific HTML file:
+```bash
+python recycle_bin_analyzer.py --export-html my_analysis.html
+```
+
 #### Show all user SIDs on the system:
 ```bash
 python recycle_bin_analyzer.py --show-sids
@@ -83,7 +90,7 @@ python recycle_bin_analyzer.py --show-sids
 
 #### Combine multiple options:
 ```bash
-python recycle_bin_analyzer.py --show-content --max-content-length 1500 --export-json results.json --show-sids
+python recycle_bin_analyzer.py --show-content --max-content-length 1500 --export-html results.html --show-sids
 ```
 
 #### Get help:
@@ -136,166 +143,36 @@ The JSON export provides structured data with the following file attributes:
 - `can_read_content`: Whether file content can be read
 - `actual_file_path`: Full path to the $R file in Recycle Bin
 
-## Example Output
-
-### Basic Analysis
-```bash
-python recycle_bin_analyzer.py
-```
-
-**Output:**
-```
-Windows Recycle Bin Analyzer
-Windows API available: True (requires pywin32)
-
-Starting Windows Recycle Bin analysis...
-Scanning Recycle Bin at: C:\$Recycle.Bin
-Scanning SID-based folders...
-Current user SID: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-Found 2 SID folders
-Scanning current user folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-  Found 3 deleted files in S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-Scanning SID folder: S-1-5-21-1234567890-1234567890-1234567890-1000 (Administrator)
-  No deleted files found in S-1-5-21-1234567890-1234567890-1234567890-1000 (Administrator)
-
-Found 3 deleted files:
-================================================================================
-
-1. File Information:
-   Original Name: document.txt
-   Original Location: C:\Users\username\Documents\document.txt
-   File Size: 1,024 bytes
-   Delete Time: 2024-01-15 14:30:25
-   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-   Recycled Name: $I123456.txt
-   Can Read Content: True
-
-2. File Information:
-   Original Name: image.jpg
-   Original Location: C:\Users\username\Pictures\image.jpg
-   File Size: 2,048,576 bytes
-   Delete Time: 2024-01-15 13:45:12
-   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-   Recycled Name: $I123457.jpg
-   Can Read Content: False
-
-3. File Information:
-   Original Name: notes.txt
-   Original Location: C:\Users\username\Desktop\notes.txt
-   File Size: 512 bytes
-   Delete Time: 2024-01-15 12:20:33
-   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-   Recycled Name: $I123458.txt
-   Can Read Content: True
-
-Analysis complete. Results exported to: recycle_bin_analysis.csv
-```
-
-### With Content Preview
-```bash
-python recycle_bin_analyzer.py --show-content --max-content-length 500
-```
-
-**Output:**
-```
-Windows Recycle Bin Analyzer
-Windows API available: True (requires pywin32)
-
-Starting Windows Recycle Bin analysis...
-Scanning Recycle Bin at: C:\$Recycle.Bin
-Scanning SID-based folders...
-Current user SID: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-Found 2 SID folders
-Scanning current user folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-  Found 3 deleted files in S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-Scanning SID folder: S-1-5-21-1234567890-1234567890-1234567890-1000 (Administrator)
-  No deleted files found in S-1-5-21-1234567890-1234567890-1234567890-1000 (Administrator)
-
-Found 3 deleted files:
-================================================================================
-
-1. File Information:
-   Original Name: document.txt
-   Original Location: C:\Users\username\Documents\document.txt
-   File Size: 1,024 bytes
-   Delete Time: 2024-01-15 14:30:25
-   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-   Recycled Name: $I123456.txt
-   Can Read Content: True
-   
-   Content Preview:
-   ----------------------------------------
-   This is a sample document that was deleted.
-   It contains some text content that can be read
-   from the Recycle Bin.
-   
-   The file was originally located in the Documents
-   folder and contains important information.
-   ----------------------------------------
-
-2. File Information:
-   Original Name: image.jpg
-   Original Location: C:\Users\username\Pictures\image.jpg
-   File Size: 2,048,576 bytes
-   Delete Time: 2024-01-15 13:45:12
-   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-   Recycled Name: $I123457.jpg
-   Can Read Content: False
-   
-   Content Preview: [Binary file - content not displayed]
-
-3. File Information:
-   Original Name: notes.txt
-   Original Location: C:\Users\username\Desktop\notes.txt
-   File Size: 512 bytes
-   Delete Time: 2024-01-15 12:20:33
-   SID Folder: S-1-5-21-1234567890-1234567890-1234567890-1001 (username)
-   Recycled Name: $I123458.txt
-   Can Read Content: True
-   
-   Content Preview:
-   ----------------------------------------
-   Quick notes:
-   - Meeting at 3 PM
-   - Call John about project
-   - Review quarterly report
-   ----------------------------------------
-
-Analysis complete. Results exported to: recycle_bin_analysis.csv
-```
-
-### JSON Export Format
-
-When exporting to JSON, the output includes comprehensive metadata and structured file information:
-
-```json
-{
-  "analysis_info": {
-    "timestamp": "2024-01-15T14:30:25.123456",
-    "total_files": 3,
-    "export_format": "json"
-  },
-  "files": [
-    {
-      "original_name": "document.txt",
-      "original_path": "C:\\Users\\username\\Documents\\document.txt",
-      "file_size": 1024,
-      "delete_time": "2024-01-15 14:30:25",
-      "sid_folder": "S-1-5-21-1234567890-1234567890-1234567890-1001",
-      "username": "username",
-      "recycled_name": "$I123456.txt",
-      "can_read_content": true,
-      "actual_file_path": "C:\\$Recycle.Bin\\S-1-5-21-1234567890-1234567890-1234567890-1001\\$R123456.txt"
-    }
-  ]
-}
-```
-
 The JSON format provides:
 - **analysis_info**: Metadata about the analysis run
 - **files**: Array of file objects with complete information
 - **Structured data**: Easy to parse programmatically
 - **UTF-8 encoding**: Proper handling of international characters
+
+### HTML Export Format
+
+The HTML export creates an interactive web page with a sortable table and search functionality:
+
+**Features:**
+- **Sortable Columns**: Click any column header to sort by that field
+- **Search Functionality**: Real-time filtering of results
+- **Statistics Dashboard**: Summary statistics at the top
+- **Responsive Design**: Works on desktop and mobile devices
+- **Modern UI**: Clean, professional appearance with hover effects
+
+**Interactive Elements:**
+- **Column Sorting**: Click column headers to sort ascending/descending
+- **Search Box**: Type to filter results across all fields
+- **Visual Indicators**: Sort arrows and hover effects
+- **Color Coding**: Green for readable files, red for binary files
+
+**Statistics Displayed:**
+- Total file size (bytes and MB)
+- Number of text files vs binary files
+- Number of unique users
+- Analysis timestamp
+
+The HTML file is self-contained with embedded CSS and JavaScript, making it easy to share and view in any web browser.
 
 ### Show All User SIDs
 ```bash
@@ -326,7 +203,7 @@ python recycle_bin_analyzer.py --help
 
 **Output:**
 ```
-usage: recycle_bin_analyzer.py [-h] [--show-content] [--max-content-length MAX_CONTENT_LENGTH] [--export-csv EXPORT_CSV] [--export-json EXPORT_JSON] [--show-sids]
+usage: recycle_bin_analyzer.py [-h] [--show-content] [--max-content-length MAX_CONTENT_LENGTH] [--export-csv EXPORT_CSV] [--export-json EXPORT_JSON] [--export-html EXPORT_HTML] [--show-sids]
 
 Windows Recycle Bin Analyzer
 
@@ -339,6 +216,8 @@ options:
                         Export results to CSV file
   --export-json EXPORT_JSON
                         Export results to JSON file
+  --export-html EXPORT_HTML
+                        Export results to HTML file with sortable table
   --show-sids           Show all user SIDs found on the system
 
 Windows API available: True (requires pywin32)
