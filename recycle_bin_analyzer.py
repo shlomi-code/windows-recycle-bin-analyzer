@@ -75,19 +75,15 @@ def main():
     # Export to CSV if requested
     if args.export_csv:
         export_to_csv(files_info, args.export_csv)
-    elif files_info:  # Auto-export if files found
-        export_to_csv(files_info)
     
     # Export to JSON if requested
     if args.export_json:
         export_to_json(files_info, args.export_json)
-    elif files_info and not args.export_csv:  # Auto-export JSON if no CSV export specified
-        export_to_json(files_info)
     
-    # Export to HTML if requested
+    # Export to HTML if requested or as default
     if args.export_html:
         export_to_html(files_info, args.export_html)
-    elif files_info and not args.export_csv and not args.export_json:  # Auto-export HTML if no other export specified
+    elif files_info:  # Auto-export HTML as default if files found
         export_to_html(files_info)
 
 
