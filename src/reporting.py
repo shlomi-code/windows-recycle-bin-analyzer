@@ -118,6 +118,37 @@ def export_to_json(files_info: List[Dict], output_file: str = "recycle_bin_analy
 def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analysis.html"):
     """Export the analysis results to an HTML file with sortable table."""
     try:
+        # Calculate file extension statistics
+        extension_stats = {}
+        total_files = len(files_info)
+        
+        for file_info in files_info:
+            original_name = file_info.get('original_name', '')
+            if original_name:
+                # Extract file extension
+                if '.' in original_name:
+                    extension = original_name.split('.')[-1].lower()
+                    if extension:
+                        extension_stats[extension] = extension_stats.get(extension, 0) + 1
+                else:
+                    # Files without extension
+                    extension_stats['No Extension'] = extension_stats.get('No Extension', 0) + 1
+            else:
+                # Unknown files
+                extension_stats['Unknown'] = extension_stats.get('Unknown', 0) + 1
+        
+        # Sort extensions by count (descending) and limit to top 10
+        sorted_extensions = sorted(extension_stats.items(), key=lambda x: x[1], reverse=True)
+        top_extensions = sorted_extensions[:10]
+        
+        # Prepare chart data
+        chart_labels = [ext for ext, count in top_extensions]
+        chart_data = [count for ext, count in top_extensions]
+        chart_colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+        ]
+        
         # HTML template with embedded CSS and JavaScript
         html_template = """<!DOCTYPE html>
 <html lang="en">
@@ -125,6 +156,7 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Windows Recycle Bin Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -132,7 +164,7 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             background-color: #f5f5f5;
         }}
         .container {{
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             background-color: white;
             padding: 20px;
@@ -154,6 +186,53 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
         .analysis-info p {{
             margin: 5px 0;
             color: #333;
+        }}
+        .stats {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }}
+        .stat-item {{
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin: 5px;
+            border-left: 3px solid #2196F3;
+        }}
+        .stat-label {{
+            font-weight: bold;
+            color: #333;
+        }}
+        .stat-value {{
+            color: #666;
+        }}
+        .charts-container {{
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }}
+        .chart-wrapper {{
+            flex: 1;
+            min-width: 300px;
+            max-width: 400px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }}
+        .chart-title {{
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }}
+        .chart-container {{
+            position: relative;
+            height: 200px;
+            width: 100%;
+            margin-bottom: 10px;
         }}
         table {{
             width: 100%;
@@ -230,25 +309,15 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             margin-bottom: 15px;
             font-size: 14px;
         }}
-        .stats {{
+        .extension-list {{
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }}
+        .extension-item {{
             display: flex;
             justify-content: space-between;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }}
-        .stat-item {{
-            background-color: #f8f9fa;
-            padding: 10px 15px;
-            border-radius: 4px;
-            margin: 5px;
-            border-left: 3px solid #2196F3;
-        }}
-        .stat-label {{
-            font-weight: bold;
-            color: #333;
-        }}
-        .stat-value {{
-            color: #666;
+            margin: 2px 0;
         }}
     </style>
 </head>
@@ -278,6 +347,22 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             <div class="stat-item">
                 <div class="stat-label">Unique Users:</div>
                 <div class="stat-value">{unique_users}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">File Types:</div>
+                <div class="stat-value">{file_types_count}</div>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <div class="chart-title">File Extensions Distribution</div>
+                <div class="chart-container">
+                    <canvas id="extensionChart" width="300" height="200"></canvas>
+                </div>
+                <div class="extension-list">
+                    {extension_list}
+                </div>
             </div>
         </div>
 
@@ -315,7 +400,53 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             
             // Add search functionality
             document.getElementById('searchBox').addEventListener('input', filterTable);
+            
+            // Initialize chart
+            initializeChart();
         }});
+
+        function initializeChart() {{
+            const ctx = document.getElementById('extensionChart').getContext('2d');
+            new Chart(ctx, {{
+                type: 'pie',
+                data: {{
+                    labels: {chart_labels},
+                    datasets: [{{
+                        data: {chart_data},
+                        backgroundColor: {chart_colors},
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }}]
+                }},
+                options: {{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {{
+                        legend: {{
+                            position: 'bottom',
+                            labels: {{
+                                padding: 10,
+                                usePointStyle: true,
+                                font: {{
+                                    size: 11
+                                }}
+                            }}
+                        }},
+                        tooltip: {{
+                            callbacks: {{
+                                label: function(context) {{
+                                    const label = context.label || '';
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${{label}}: ${{value}} (${{percentage}}%)`;
+                                }}
+                            }}
+                        }}
+                    }}
+                }}
+            }});
+        }}
 
         function sortTable(columnIndex) {{
             const table = document.getElementById('dataTable');
@@ -395,6 +526,13 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
         text_files = sum(1 for file_info in files_info if file_info.get('can_read_content', False))
         binary_files = len(files_info) - text_files
         unique_users = len(set(file_info.get('sid_display', '') for file_info in files_info))
+        file_types_count = len(extension_stats)
+
+        # Generate extension list for display
+        extension_list_html = ""
+        for ext, count in top_extensions:
+            percentage = (count / total_files * 100) if total_files > 0 else 0
+            extension_list_html += f'<div class="extension-item"><span>{ext}</span><span>{count} ({percentage:.1f}%)</span></div>'
 
         # Generate table rows
         table_rows = ""
@@ -438,6 +576,11 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             text_files=text_files,
             binary_files=binary_files,
             unique_users=unique_users,
+            file_types_count=file_types_count,
+            chart_labels=chart_labels,
+            chart_data=chart_data,
+            chart_colors=chart_colors,
+            extension_list=extension_list_html,
             table_rows=table_rows
         )
 
