@@ -116,6 +116,12 @@ Desktop.ini
 # CSV files
 *.csv
 
+# JSON files
+*.json
+
+# HTML files
+*.html
+
 # Other
 *.bak
 *.swp
