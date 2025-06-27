@@ -22,17 +22,17 @@ A comprehensive Python tool for analyzing the Windows Recycle Bin directory. Thi
 
 - Windows operating system
 - Python 3.6 or higher
-- **Optional**: `pywin32` package for better performance (Windows API calls instead of subprocess)
+- **Required**: `pywin32` package for Windows API access
 
 ## Installation
 
 1. Clone or download this repository
 2. Ensure you have Python 3.6+ installed
-3. **Optional**: Install pywin32 for better performance:
+3. **Required**: Install pywin32 for Windows API access:
    ```bash
    pip install pywin32
    ```
-4. No additional installation required - all dependencies are part of Python's standard library
+4. No additional installation required - all other dependencies are part of Python's standard library
 
 ## Usage
 

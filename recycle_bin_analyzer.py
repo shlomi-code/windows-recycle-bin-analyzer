@@ -40,6 +40,12 @@ def main():
         print("This script is designed for Windows systems only.")
         sys.exit(1)
     
+    # Check if pywin32 is available (required)
+    if not WINDOWS_API_AVAILABLE:
+        print("Error: pywin32 package is required but not available.")
+        print("Please install it using: pip install pywin32")
+        sys.exit(1)
+    
     # Create analyzer and run analysis
     analyzer = RecycleBinAnalyzer()
     

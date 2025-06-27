@@ -1,5 +1,4 @@
 from typing import List, Optional
-import subprocess
 
 # Windows API imports
 try:
@@ -18,7 +17,8 @@ except ImportError:
 def get_current_user_sid() -> Optional[str]:
     """Get the current user's SID using Windows API."""
     if not WINDOWS_API_AVAILABLE:
-        return _get_current_user_sid_fallback()
+        print("Error: Windows API (pywin32) is not available. Cannot get current user SID.")
+        return None
     
     try:
         # Method 1: Get from current process token
@@ -55,7 +55,8 @@ def get_current_user_sid() -> Optional[str]:
         except Exception as e2:
             print(f"Warning: Could not get current user SID via session: {e2}")
         
-        return _get_current_user_sid_fallback()
+        print("Error: Could not get current user SID using any available method.")
+        return None
 
 def _get_sid_for_username(username: str) -> Optional[str]:
     """Get SID for a given username using Windows API."""
@@ -64,32 +65,15 @@ def _get_sid_for_username(username: str) -> Optional[str]:
         user_info = win32net.NetUserGetInfo("", username, 4)
         if user_info and 'user_sid' in user_info:
             return win32security.ConvertSidToStringSid(user_info['user_sid'])
-    except Exception:
-        pass
-    return None
-
-def _get_current_user_sid_fallback() -> Optional[str]:
-    """Fallback method using whoami if Windows API is not available."""
-    try:
-        result = subprocess.run(['whoami', '/all'], 
-                              capture_output=True, text=True, 
-                              creationflags=subprocess.CREATE_NO_WINDOW)
-        if result.returncode == 0:
-            for line in result.stdout.split('\n'):
-                if 'S-1-5-21-' in line and 'S-1-5-21-' in line.split():
-                    # Extract SID from the line
-                    parts = line.split()
-                    for part in parts:
-                        if part.startswith('S-1-5-21-'):
-                            return part
     except Exception as e:
-        print(f"Warning: Could not get current user SID: {e}")
+        print(f"Warning: Could not get SID for username '{username}': {e}")
     return None
 
 def get_all_user_sids() -> List[str]:
     """Get all local user SIDs using Windows API."""
     if not WINDOWS_API_AVAILABLE:
-        return _get_all_user_sids_fallback()
+        print("Error: Windows API (pywin32) is not available. Cannot get user SIDs.")
+        return []
     
     sids = []
     try:
@@ -104,32 +88,22 @@ def get_all_user_sids() -> List[str]:
                     sid_string = win32security.ConvertSidToStringSid(user_info['user_sid'])
                     if sid_string.startswith('S-1-5-21-'):
                         sids.append(sid_string)
-            except Exception:
+            except Exception as e:
+                print(f"Warning: Could not get SID for user '{user['name']}': {e}")
                 # Skip users that can't be queried
                 continue
                 
     except Exception as e:
-        print(f"Warning: Could not get user SIDs via API: {e}")
-        return _get_all_user_sids_fallback()
+        print(f"Error: Could not get user SIDs via API: {e}")
+        return []
     
-    return sids
-
-def _get_all_user_sids_fallback() -> List[str]:
-    """Fallback method using whoami if Windows API is not available."""
-    sids = []
-    try:
-        # Use whoami to get current user SID as fallback
-        current_sid = _get_current_user_sid_fallback()
-        if current_sid:
-            sids.append(current_sid)
-    except Exception as e:
-        print(f"Warning: Could not get user SIDs: {e}")
     return sids
 
 def resolve_sid_to_username(sid: str) -> Optional[str]:
     """Resolve a SID to a username using Windows API."""
     if not WINDOWS_API_AVAILABLE:
-        return _resolve_sid_to_username_fallback(sid)
+        print(f"Error: Windows API (pywin32) is not available. Cannot resolve SID {sid} to username.")
+        return f"Unknown User ({sid})"
     
     try:
         # Convert string SID to SID object
@@ -146,24 +120,7 @@ def resolve_sid_to_username(sid: str) -> Optional[str]:
             
     except Exception as e:
         print(f"Warning: Could not resolve SID {sid} to username via API: {e}")
-        # Try fallback method
-        return _resolve_sid_to_username_fallback(sid)
-
-def _resolve_sid_to_username_fallback(sid: str) -> Optional[str]:
-    """Fallback method using whoami to resolve SID to username."""
-    try:
-        # For fallback, we can only get current user info
-        # This is a limitation when pywin32 is not available
-        result = subprocess.run(['whoami'], 
-                              capture_output=True, text=True, 
-                              creationflags=subprocess.CREATE_NO_WINDOW)
-        if result.returncode == 0:
-            current_user = result.stdout.strip()
-            # We can't reliably map SID to username without API, so return SID
-            return f"Unknown User ({sid})"
-    except Exception as e:
-        print(f"Warning: Could not resolve SID {sid} to username: {e}")
-    return f"Unknown User ({sid})"
+        return f"Unknown User ({sid})"
 
 def get_sid_info(sid: str) -> dict:
     """Get comprehensive information about a SID including username and account type."""
@@ -175,7 +132,8 @@ def get_sid_info(sid: str) -> dict:
     }
     
     if not WINDOWS_API_AVAILABLE:
-        info['username'] = _resolve_sid_to_username_fallback(sid)
+        print(f"Error: Windows API (pywin32) is not available. Cannot get full SID info for {sid}.")
+        info['username'] = f"Unknown User ({sid})"
         return info
     
     try:
@@ -224,7 +182,7 @@ def get_sid_info(sid: str) -> dict:
         
     except Exception as e:
         # Fallback to basic method
-        info['username'] = _resolve_sid_to_username_fallback(sid)
+        info['username'] = f"Unknown User ({sid})"
         print(f"Warning: Could not get full SID info for {sid}: {e}")
     
     return info 

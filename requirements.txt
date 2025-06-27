@@ -18,7 +18,8 @@ pywin32>=305; sys_platform == "win32"
 # - typing
 # - argparse
 # - csv
-# - subprocess (fallback only)
+# - json
+# - subprocess (no longer used - removed for security)
 
-# Note: pywin32 is optional but recommended for better performance.
-# The script will fall back to subprocess calls if pywin32 is not available. 
+# Note: pywin32 is now required for Windows API access.
+# The script will exit with an error if pywin32 is not available. 
