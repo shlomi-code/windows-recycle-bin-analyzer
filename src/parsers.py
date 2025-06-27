@@ -16,14 +16,11 @@ def _filetime_to_datetime(filetime: int) -> Optional[datetime.datetime]:
     # Unix epoch is 11644473600 seconds after Windows epoch
     seconds_since_1970 = seconds_since_1601 - 11644473600
     
-    # Create UTC datetime
-    utc_datetime = datetime.datetime.utcfromtimestamp(seconds_since_1970)
+    # Create datetime in local timezone directly
+    # Use fromtimestamp instead of utcfromtimestamp to get local time
+    local_datetime = datetime.datetime.fromtimestamp(seconds_since_1970)
     
-    # Convert to local timezone
-    local_datetime = utc_datetime.replace(tzinfo=datetime.timezone.utc).astimezone()
-    
-    # Return naive datetime in local timezone
-    return local_datetime.replace(tzinfo=None)
+    return local_datetime
 
 def parse_info2_file(info2_path: Path) -> List[Dict]:
     """Parse the INFO2 file to get metadata about deleted files (older Windows versions)."""

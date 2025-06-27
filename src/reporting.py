@@ -18,7 +18,14 @@ def display_results(files_info: List[Dict], show_content: bool = False, max_cont
         print(f"   Original Name: {file_info.get('original_name', 'Unknown')}")
         print(f"   Original Location: {file_info.get('original_path', 'Unknown')}")
         print(f"   File Size: {file_info.get('file_size', 0):,} bytes")
-        print(f"   Delete Time: {file_info.get('delete_time', 'Unknown')}")
+        
+        # Format delete time properly
+        delete_time_obj = file_info.get('delete_time', 'Unknown')
+        if delete_time_obj and hasattr(delete_time_obj, 'strftime'):
+            delete_time_str = delete_time_obj.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            delete_time_str = str(delete_time_obj)
+        print(f"   Delete Time: {delete_time_str}")
         
         # Display user-friendly SID information
         sid_display = file_info.get('sid_display', file_info.get('sid_folder', 'Unknown'))
@@ -61,11 +68,18 @@ def export_to_csv(files_info: List[Dict], output_file: str = "recycle_bin_analys
             writer.writeheader()
             for file_info in files_info:
                 # Prepare row data
+                # Format delete time properly
+                delete_time_obj = file_info.get('delete_time', '')
+                if delete_time_obj and hasattr(delete_time_obj, 'strftime'):
+                    delete_time_str = delete_time_obj.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    delete_time_str = str(delete_time_obj) if delete_time_obj else ''
+                
                 row = {
                     'original_name': file_info.get('original_name', ''),
                     'original_path': file_info.get('original_path', ''),
                     'file_size': file_info.get('file_size', 0),
-                    'delete_time': str(file_info.get('delete_time', '')),
+                    'delete_time': delete_time_str,
                     'sid_folder': file_info.get('sid_folder', ''),
                     'username': file_info.get('sid_display', ''),
                     'recycled_name': file_info.get('recycled_name', ''),
@@ -93,11 +107,18 @@ def export_to_json(files_info: List[Dict], output_file: str = "recycle_bin_analy
         
         for file_info in files_info:
             # Convert file_info to JSON-serializable format
+            # Format delete time properly
+            delete_time_obj = file_info.get('delete_time', '')
+            if delete_time_obj and hasattr(delete_time_obj, 'strftime'):
+                delete_time_str = delete_time_obj.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                delete_time_str = str(delete_time_obj) if delete_time_obj else ''
+            
             json_file_info = {
                 'original_name': file_info.get('original_name', ''),
                 'original_path': str(file_info.get('original_path', '')),
                 'file_size': file_info.get('file_size', 0),
-                'delete_time': str(file_info.get('delete_time', '')),
+                'delete_time': delete_time_str,
                 'sid_folder': file_info.get('sid_folder', ''),
                 'username': file_info.get('sid_display', ''),
                 'recycled_name': file_info.get('recycled_name', ''),
@@ -543,8 +564,12 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             file_size = file_info.get('file_size', 0)
             formatted_size = f"{file_size:,} bytes"
             
-            # Format delete time
-            delete_time = str(file_info.get('delete_time', ''))
+            # Format delete time with proper formatting
+            delete_time_obj = file_info.get('delete_time', '')
+            if delete_time_obj and hasattr(delete_time_obj, 'strftime'):
+                delete_time = delete_time_obj.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                delete_time = str(delete_time_obj) if delete_time_obj else ''
             
             # Format can_read_content
             can_read = file_info.get('can_read_content', False)
