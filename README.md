@@ -11,6 +11,7 @@ A comprehensive Python tool for analyzing the Windows Recycle Bin directory. Thi
 - **Accurate Metadata Parsing**: Properly parses $I metadata files according to Windows specifications
 - **Content Reading**: Can read and display content from text files in the Recycle Bin
 - **CSV Export**: Export analysis results to CSV format for further processing
+- **JSON Export**: Export analysis results to JSON format for programmatic access
 - **Cross-Drive Support**: Automatically detects Recycle Bin locations on multiple drives
 - **Windows Version Compatibility**: Works with both older (INFO2) and newer (SID-based) Recycle Bin formats
 - **User SID Management**: Shows all user SIDs and their Recycle Bin contents
@@ -49,6 +50,7 @@ python recycle_bin_analyzer.py
 | `--show-content` | Display content preview for text files | False |
 | `--max-content-length N` | Maximum number of characters to display for content preview | 1000 |
 | `--export-csv FILENAME` | Export results to specified CSV file | Auto-export if files found |
+| `--export-json FILENAME` | Export results to specified JSON file | Auto-export if files found |
 | `--show-sids` | Show all user SIDs found on the system | False |
 | `-h, --help` | Show help message | - |
 
@@ -69,6 +71,11 @@ python recycle_bin_analyzer.py --show-content --max-content-length 2000
 python recycle_bin_analyzer.py --export-csv my_analysis.csv
 ```
 
+#### Export results to specific JSON file:
+```bash
+python recycle_bin_analyzer.py --export-json my_analysis.json
+```
+
 #### Show all user SIDs on the system:
 ```bash
 python recycle_bin_analyzer.py --show-sids
@@ -76,7 +83,7 @@ python recycle_bin_analyzer.py --show-sids
 
 #### Combine multiple options:
 ```bash
-python recycle_bin_analyzer.py --show-content --max-content-length 1500 --export-csv results.csv --show-sids
+python recycle_bin_analyzer.py --show-content --max-content-length 1500 --export-json results.json --show-sids
 ```
 
 #### Get help:
@@ -226,6 +233,39 @@ Found 3 deleted files:
 Analysis complete. Results exported to: recycle_bin_analysis.csv
 ```
 
+### JSON Export Format
+
+When exporting to JSON, the output includes comprehensive metadata and structured file information:
+
+```json
+{
+  "analysis_info": {
+    "timestamp": "2024-01-15T14:30:25.123456",
+    "total_files": 3,
+    "export_format": "json"
+  },
+  "files": [
+    {
+      "original_name": "document.txt",
+      "original_path": "C:\\Users\\username\\Documents\\document.txt",
+      "file_size": 1024,
+      "delete_time": "2024-01-15 14:30:25",
+      "sid_folder": "S-1-5-21-1234567890-1234567890-1234567890-1001",
+      "sid_display": "username",
+      "recycled_name": "$I123456.txt",
+      "can_read_content": true,
+      "actual_file_path": "C:\\$Recycle.Bin\\S-1-5-21-1234567890-1234567890-1234567890-1001\\$R123456.txt"
+    }
+  ]
+}
+```
+
+The JSON format provides:
+- **analysis_info**: Metadata about the analysis run
+- **files**: Array of file objects with complete information
+- **Structured data**: Easy to parse programmatically
+- **UTF-8 encoding**: Proper handling of international characters
+
 ### Show All User SIDs
 ```bash
 python recycle_bin_analyzer.py --show-sids
@@ -255,7 +295,7 @@ python recycle_bin_analyzer.py --help
 
 **Output:**
 ```
-usage: recycle_bin_analyzer.py [-h] [--show-content] [--max-content-length MAX_CONTENT_LENGTH] [--export-csv EXPORT_CSV] [--show-sids]
+usage: recycle_bin_analyzer.py [-h] [--show-content] [--max-content-length MAX_CONTENT_LENGTH] [--export-csv EXPORT_CSV] [--export-json EXPORT_JSON] [--show-sids]
 
 Windows Recycle Bin Analyzer
 
@@ -266,6 +306,8 @@ options:
                         Maximum content length to display (default: 1000)
   --export-csv EXPORT_CSV
                         Export results to CSV file
+  --export-json EXPORT_JSON
+                        Export results to JSON file
   --show-sids           Show all user SIDs found on the system
 
 Windows API available: True (requires pywin32)

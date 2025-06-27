@@ -1,6 +1,8 @@
 from pathlib import Path
 from typing import List, Dict
 import csv
+import json
+from datetime import datetime
 
 def display_results(files_info: List[Dict], show_content: bool = False, max_content_length: int = 1000):
     """Display the analysis results."""
@@ -74,4 +76,41 @@ def export_to_csv(files_info: List[Dict], output_file: str = "recycle_bin_analys
         print(f"\nAnalysis exported to: {output_file}")
         
     except Exception as e:
-        print(f"Error exporting to CSV: {e}") 
+        print(f"Error exporting to CSV: {e}")
+
+def export_to_json(files_info: List[Dict], output_file: str = "recycle_bin_analysis.json"):
+    """Export the analysis results to a JSON file."""
+    try:
+        # Prepare data for JSON export
+        json_data = {
+            'analysis_info': {
+                'timestamp': datetime.now().isoformat(),
+                'total_files': len(files_info),
+                'export_format': 'json'
+            },
+            'files': []
+        }
+        
+        for file_info in files_info:
+            # Convert file_info to JSON-serializable format
+            json_file_info = {
+                'original_name': file_info.get('original_name', ''),
+                'original_path': str(file_info.get('original_path', '')),
+                'file_size': file_info.get('file_size', 0),
+                'delete_time': str(file_info.get('delete_time', '')),
+                'sid_folder': file_info.get('sid_folder', ''),
+                'sid_display': file_info.get('sid_display', file_info.get('sid_folder', '')),
+                'recycled_name': file_info.get('recycled_name', ''),
+                'can_read_content': file_info.get('can_read_content', False),
+                'actual_file_path': str(file_info.get('actual_file_path', '')) if file_info.get('actual_file_path') else None
+            }
+            json_data['files'].append(json_file_info)
+        
+        # Write to JSON file with proper formatting
+        with open(output_file, 'w', encoding='utf-8') as jsonfile:
+            json.dump(json_data, jsonfile, indent=2, ensure_ascii=False)
+        
+        print(f"\nAnalysis exported to JSON: {output_file}")
+        
+    except Exception as e:
+        print(f"Error exporting to JSON: {e}") 
