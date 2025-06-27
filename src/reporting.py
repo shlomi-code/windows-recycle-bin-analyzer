@@ -55,7 +55,7 @@ def export_to_csv(files_info: List[Dict], output_file: str = "recycle_bin_analys
     """Export the analysis results to a CSV file."""
     try:
         with open(output_file, 'w', newline='', encoding='utf-8') as csvfile:
-            fieldnames = ['original_name', 'original_path', 'file_size', 'delete_time', 'sid_folder', 'sid_display', 'recycled_name', 'can_read_content']
+            fieldnames = ['original_name', 'original_path', 'file_size', 'delete_time', 'sid_folder', 'username', 'recycled_name', 'can_read_content']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             
             writer.writeheader()
@@ -67,7 +67,7 @@ def export_to_csv(files_info: List[Dict], output_file: str = "recycle_bin_analys
                     'file_size': file_info.get('file_size', 0),
                     'delete_time': str(file_info.get('delete_time', '')),
                     'sid_folder': file_info.get('sid_folder', ''),
-                    'sid_display': file_info.get('sid_display', file_info.get('sid_folder', '')),
+                    'username': file_info.get('sid_display', ''),
                     'recycled_name': file_info.get('recycled_name', ''),
                     'can_read_content': file_info.get('can_read_content', False)
                 }
@@ -99,7 +99,7 @@ def export_to_json(files_info: List[Dict], output_file: str = "recycle_bin_analy
                 'file_size': file_info.get('file_size', 0),
                 'delete_time': str(file_info.get('delete_time', '')),
                 'sid_folder': file_info.get('sid_folder', ''),
-                'sid_display': file_info.get('sid_display', file_info.get('sid_folder', '')),
+                'username': file_info.get('sid_display', ''),
                 'recycled_name': file_info.get('recycled_name', ''),
                 'can_read_content': file_info.get('can_read_content', False),
                 'actual_file_path': str(file_info.get('actual_file_path', '')) if file_info.get('actual_file_path') else None

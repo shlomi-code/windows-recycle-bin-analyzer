@@ -105,6 +105,37 @@ For each deleted file, the analyzer provides:
 - **Can Read Content**: Whether the file content can be read
 - **Content Preview**: (Optional) Preview of text file contents
 
+## Export Formats
+
+### CSV Export
+
+The CSV export includes the following columns:
+
+| Column | Description |
+|--------|-------------|
+| `original_name` | Original filename before deletion |
+| `original_path` | Full original file path |
+| `file_size` | File size in bytes |
+| `delete_time` | Deletion timestamp |
+| `sid_folder` | SID (Security Identifier) of the user |
+| `username` | Human-readable username |
+| `recycled_name` | $I metadata filename in Recycle Bin |
+| `can_read_content` | Whether file content can be read |
+
+### JSON Export
+
+The JSON export provides structured data with the following file attributes:
+
+- `original_name`: Original filename before deletion
+- `original_path`: Full original file path
+- `file_size`: File size in bytes
+- `delete_time`: Deletion timestamp
+- `sid_folder`: SID (Security Identifier) of the user
+- `username`: Human-readable username
+- `recycled_name`: $I metadata filename in Recycle Bin
+- `can_read_content`: Whether file content can be read
+- `actual_file_path`: Full path to the $R file in Recycle Bin
+
 ## Example Output
 
 ### Basic Analysis
@@ -251,7 +282,7 @@ When exporting to JSON, the output includes comprehensive metadata and structure
       "file_size": 1024,
       "delete_time": "2024-01-15 14:30:25",
       "sid_folder": "S-1-5-21-1234567890-1234567890-1234567890-1001",
-      "sid_display": "username",
+      "username": "username",
       "recycled_name": "$I123456.txt",
       "can_read_content": true,
       "actual_file_path": "C:\\$Recycle.Bin\\S-1-5-21-1234567890-1234567890-1234567890-1001\\$R123456.txt"

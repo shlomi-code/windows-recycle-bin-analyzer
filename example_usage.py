@@ -72,6 +72,7 @@ def main():
         print("\nLargest deleted files:")
         for i, file_info in enumerate(largest_files, 1):
             print(f"  {i}. {file_info['original_name']} ({file_info['file_size']:,} bytes)")
+            print(f"     User: {file_info['username']} (SID: {file_info['sid_folder']})")
             
     except Exception as e:
         print(f"Error processing JSON data: {e}")
