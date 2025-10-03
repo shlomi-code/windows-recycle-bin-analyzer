@@ -618,7 +618,6 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
                 <h2><i class="fas fa-info-circle"></i> Analysis Information</h2>
                 <p><strong>Analysis Timestamp:</strong> {timestamp}</p>
                 <p><strong>Total Files Analyzed:</strong> {total_files}</p>
-                <p><strong>Report Format:</strong> Professional HTML Report</p>
             </div>
 
             <div class="stats-grid">
