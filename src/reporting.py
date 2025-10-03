@@ -166,8 +166,8 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
         chart_labels = [ext for ext, count in top_extensions]
         chart_data = [count for ext, count in top_extensions]
         chart_colors = [
-            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-            '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+            '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0',
+            '#334155', '#1e293b', '#f1f5f9', '#94a3b8', '#64748b'
         ]
         
         # HTML template with embedded CSS and JavaScript
@@ -176,243 +176,531 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Windows Recycle Bin Analysis</title>
+    <title>Windows Recycle Bin Analysis Report</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
         body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }}
-        .container {{
-            max-width: 1400px;
-            margin: 0 auto;
-            background-color: white;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            color: #1e293b;
+            line-height: 1.6;
         }}
-        h1 {{
-            color: #333;
+        
+        .container {{
+            max-width: 1600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }}
+        
+        .header {{
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 40px 30px;
             text-align: center;
-            margin-bottom: 10px;
+            position: relative;
+            overflow: hidden;
         }}
+        
+        .header::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }}
+        
+        .header h1 {{
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }}
+        
+        .header .subtitle {{
+            font-size: 1.1rem;
+            opacity: 0.9;
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+        }}
+        
+        .content {{
+            padding: 40px 30px;
+        }}
+        
         .analysis-info {{
-            background-color: #e8f4fd;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            border-left: 4px solid #2196F3;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border-left: 5px solid #475569;
+            box-shadow: 0 8px 25px rgba(71, 85, 105, 0.15);
         }}
+        
+        .analysis-info h2 {{
+            color: #1e293b;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }}
+        
         .analysis-info p {{
-            margin: 5px 0;
-            color: #333;
+            margin: 8px 0;
+            color: #334155;
+            font-weight: 500;
         }}
-        .stats {{
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }}
-        .stat-item {{
-            background-color: #f8f9fa;
-            padding: 10px 15px;
-            border-radius: 4px;
-            margin: 5px;
-            border-left: 3px solid #2196F3;
-        }}
-        .stat-label {{
-            font-weight: bold;
-            color: #333;
-        }}
-        .stat-value {{
-            color: #666;
-        }}
-        .charts-container {{
-            display: flex;
+        
+        .stats-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+            margin-bottom: 40px;
         }}
-        .chart-wrapper {{
-            flex: 1;
-            min-width: 300px;
-            max-width: 400px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        
+        .stat-card {{
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }}
+        
+        .stat-card::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+        }}
+        
+        .stat-card:hover {{
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+        }}
+        
+        .stat-icon {{
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #475569;
+        }}
+        
+        .stat-label {{
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }}
+        
+        .stat-value {{
+            color: #1e293b;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }}
+        
+        .charts-section {{
+            margin-bottom: 40px;
+        }}
+        
+        .section-title {{
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }}
+        
+        .section-title i {{
+            color: #475569;
+        }}
+        
+        .charts-container {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }}
+        
+        .chart-card {{
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }}
+        
         .chart-title {{
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 20px;
             text-align: center;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
         }}
+        
         .chart-container {{
             position: relative;
-            height: 200px;
+            height: 300px;
             width: 100%;
-            margin-bottom: 10px;
         }}
+        
+        .controls-section {{
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }}
+        
+        .search-container {{
+            position: relative;
+            margin-bottom: 20px;
+        }}
+        
+        .search-box {{
+            width: 100%;
+            padding: 15px 20px 15px 50px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }}
+        
+        .search-box:focus {{
+            outline: none;
+            border-color: #475569;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.1);
+        }}
+        
+        .search-icon {{
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            font-size: 18px;
+        }}
+        
+        .export-buttons {{
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }}
+        
+        .export-btn {{
+            background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }}
+        
+        .export-btn:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(71, 85, 105, 0.3);
+        }}
+        
+        .table-section {{
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }}
+        
+        .table-wrapper {{
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }}
+        
         table {{
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
             background-color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: 14px;
         }}
+        
         th {{
-            background-color: #2196F3;
+            background: linear-gradient(135deg, #475569 0%, #64748b 100%);
             color: white;
-            padding: 12px 8px;
+            padding: 18px 12px;
             text-align: left;
             cursor: pointer;
             user-select: none;
             position: relative;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }}
+        
         th:hover {{
-            background-color: #1976D2;
+            background: linear-gradient(135deg, #334155 0%, #475569 100%);
         }}
+        
         th::after {{
             content: '↕';
             position: absolute;
-            right: 8px;
+            right: 12px;
             opacity: 0.7;
+            font-size: 12px;
         }}
+        
         th.sort-asc::after {{
             content: '↑';
             opacity: 1;
         }}
+        
         th.sort-desc::after {{
             content: '↓';
             opacity: 1;
         }}
+        
         td {{
-            padding: 10px 8px;
-            border-bottom: 1px solid #ddd;
+            padding: 16px 12px;
+            border-bottom: 1px solid #f1f5f9;
             vertical-align: top;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
+            transition: background-color 0.2s ease;
         }}
+        
         tr:hover {{
-            background-color: #f8f9fa;
+            background-color: #f8fafc;
         }}
+        
+        tr:nth-child(even) {{
+            background-color: #fafbfc;
+        }}
+        
+        tr:nth-child(even):hover {{
+            background-color: #f1f5f9;
+        }}
+        
         .file-size {{
             text-align: right;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
         }}
+        
         .can-read {{
             text-align: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
         }}
+        
         .can-read.true {{
-            color: #4CAF50;
-            font-weight: bold;
+            color: #38a169;
+            font-weight: 600;
         }}
+        
         .can-read.false {{
-            color: #f44336;
+            color: #e53e3e;
+            font-weight: 500;
         }}
+        
         .path-cell {{
             max-width: 300px;
             word-wrap: break-word;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            color: #64748b;
         }}
+        
         .no-data {{
             text-align: center;
-            color: #666;
+            color: #a0aec0;
             font-style: italic;
-            padding: 40px;
+            padding: 60px;
+            font-size: 1.1rem;
         }}
-        .search-box {{
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }}
+        
         .extension-list {{
-            margin-top: 10px;
+            margin-top: 15px;
             font-size: 0.9em;
-            color: #666;
+            color: #64748b;
         }}
+        
         .extension-item {{
             display: flex;
             justify-content: space-between;
-            margin: 2px 0;
+            margin: 4px 0;
+            padding: 4px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }}
+        
+        .extension-item:last-child {{
+            border-bottom: none;
+        }}
+        
+        .extension-name {{
+            font-weight: 500;
+        }}
+        
+        .extension-count {{
+            color: #475569;
+            font-weight: 600;
+        }}
+        
+        @media (max-width: 768px) {{
+            body {{
+                padding: 10px;
+            }}
+            
+            .header h1 {{
+                font-size: 2rem;
+            }}
+            
+            .content {{
+                padding: 20px 15px;
+            }}
+            
+            .stats-grid {{
+                grid-template-columns: 1fr;
+            }}
+            
+            .charts-container {{
+                grid-template-columns: 1fr;
+            }}
+            
+            .export-buttons {{
+                flex-direction: column;
+            }}
+            
+            .export-btn {{
+                justify-content: center;
+            }}
         }}
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Windows Recycle Bin Analysis</h1>
+        <div class="header">
+            <h1><i class="fas fa-trash-alt"></i> Windows Recycle Bin Analysis</h1>
+            <div class="subtitle">Comprehensive Analysis Report</div>
+        </div>
         
-        <div class="analysis-info">
-            <p><strong>Analysis Timestamp:</strong> {timestamp}</p>
-            <p><strong>Total Files:</strong> {total_files}</p>
-            <p><strong>Export Format:</strong> HTML</p>
-        </div>
+        <div class="content">
+            <div class="analysis-info">
+                <h2><i class="fas fa-info-circle"></i> Analysis Information</h2>
+                <p><strong>Analysis Timestamp:</strong> {timestamp}</p>
+                <p><strong>Total Files Analyzed:</strong> {total_files}</p>
+                <p><strong>Report Format:</strong> Professional HTML Report</p>
+            </div>
 
-        <div class="stats">
-            <div class="stat-item">
-                <div class="stat-label">Total Size:</div>
-                <div class="stat-value">{total_size}</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">Unique Users:</div>
-                <div class="stat-value">{unique_users}</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-label">File Types:</div>
-                <div class="stat-value">{file_types_count}</div>
-            </div>
-        </div>
-
-        <div class="charts-container">
-            <div class="chart-wrapper">
-                <div class="chart-title">File Extensions Distribution</div>
-                <div class="chart-container">
-                    <canvas id="extensionChart" width="300" height="200"></canvas>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-hdd"></i></div>
+                    <div class="stat-label">Total Size</div>
+                    <div class="stat-value">{total_size}</div>
                 </div>
-                <div class="extension-list">
-                    {extension_list}
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-label">Unique Users</div>
+                    <div class="stat-value">{unique_users}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-file-alt"></i></div>
+                    <div class="stat-label">File Types</div>
+                    <div class="stat-value">{file_types_count}</div>
                 </div>
             </div>
+
+            <div class="charts-section">
+                <h2 class="section-title"><i class="fas fa-chart-pie"></i> File Distribution Analysis</h2>
+                <div class="charts-container">
+                    <div class="chart-card">
+                        <div class="chart-title">File Extensions Distribution</div>
+                        <div class="chart-container">
+                            <canvas id="extensionChart"></canvas>
+                        </div>
+                        <div class="extension-list">
+                            {extension_list}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-section">
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchBox" class="search-box" placeholder="Search files by name, path, or user...">
+                </div>
+                <div class="export-buttons">
+                    <button class="export-btn" onclick="exportToCSV()">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </button>
+                    <button class="export-btn" onclick="exportToJSON()">
+                        <i class="fas fa-file-code"></i> Export JSON
+                    </button>
+                    <button class="export-btn" onclick="printReport()">
+                        <i class="fas fa-print"></i> Print Report
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <h2 class="section-title"><i class="fas fa-table"></i> Detailed File Information</h2>
+                <div class="table-wrapper">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0)">Original Name</th>
+                                <th onclick="sortTable(1)">Original Path</th>
+                                <th onclick="sortTable(2)">File Size</th>
+                                <th onclick="sortTable(3)">Delete Time</th>
+                                <th onclick="sortTable(4)">SID Folder</th>
+                                <th onclick="sortTable(5)">Username</th>
+                                <th onclick="sortTable(6)">Recycled Name</th>
+                                <th onclick="sortTable(7)">Can Read Content</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {table_rows}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-
-        <input type="text" id="searchBox" class="search-box" placeholder="Search files... (type to filter)">
-
-        <table id="dataTable">
-            <thead>
-                <tr>
-                    <th onclick="sortTable(0)">Original Name</th>
-                    <th onclick="sortTable(1)">Original Path</th>
-                    <th onclick="sortTable(2)">File Size</th>
-                    <th onclick="sortTable(3)">Delete Time</th>
-                    <th onclick="sortTable(4)">SID Folder</th>
-                    <th onclick="sortTable(5)">Username</th>
-                    <th onclick="sortTable(6)">Recycled Name</th>
-                    <th onclick="sortTable(7)">Can Read Content</th>
-                </tr>
-            </thead>
-            <tbody>
-                {table_rows}
-            </tbody>
-        </table>
     </div>
 
     <script>
         let currentSort = {{ column: -1, direction: 'asc' }};
         let originalData = [];
+        let filteredData = [];
 
         // Initialize the table
         document.addEventListener('DOMContentLoaded', function() {{
@@ -420,52 +708,77 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             const tbody = document.querySelector('#dataTable tbody');
             const rows = tbody.querySelectorAll('tr');
             originalData = Array.from(rows).map(row => row.innerHTML);
+            filteredData = [...originalData];
             
             // Add search functionality
             document.getElementById('searchBox').addEventListener('input', filterTable);
             
             // Initialize chart
             initializeChart();
+            
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', function(e) {{
+                if (e.ctrlKey && e.key === 'f') {{
+                    e.preventDefault();
+                    document.getElementById('searchBox').focus();
+                }}
+            }});
         }});
 
         function initializeChart() {{
             const ctx = document.getElementById('extensionChart').getContext('2d');
             new Chart(ctx, {{
-                type: 'pie',
+                type: 'doughnut',
                 data: {{
                     labels: {chart_labels},
                     datasets: [{{
                         data: {chart_data},
                         backgroundColor: {chart_colors},
-                        borderWidth: 2,
-                        borderColor: '#fff'
+                        borderWidth: 3,
+                        borderColor: '#fff',
+                        hoverBorderWidth: 4,
+                        hoverBorderColor: '#475569'
                     }}]
                 }},
                 options: {{
                     responsive: true,
                     maintainAspectRatio: false,
+                    cutout: '50%',
                     plugins: {{
                         legend: {{
                             position: 'bottom',
                             labels: {{
-                                padding: 10,
+                                padding: 15,
                                 usePointStyle: true,
                                 font: {{
-                                    size: 11
-                                }}
+                                    size: 12,
+                                    weight: '500'
+                                }},
+                                color: '#64748b'
                             }}
                         }},
                         tooltip: {{
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#475569',
+                            borderWidth: 1,
+                            cornerRadius: 8,
                             callbacks: {{
                                 label: function(context) {{
                                     const label = context.label || '';
                                     const value = context.parsed;
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = ((value / total) * 100).toFixed(1);
-                                    return `${{label}}: ${{value}} (${{percentage}}%)`;
+                                    return `${{label}}: ${{value}} files (${{percentage}}%)`;
                                 }}
                             }}
                         }}
+                    }},
+                    animation: {{
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1000
                     }}
                 }}
             }});
@@ -524,14 +837,118 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             const tbody = document.querySelector('#dataTable tbody');
             const rows = tbody.querySelectorAll('tr');
             
+            filteredData = [];
             rows.forEach((row, index) => {{
                 const text = row.textContent.toLowerCase();
                 if (text.includes(searchTerm)) {{
                     row.style.display = '';
+                    filteredData.push(row.innerHTML);
                 }} else {{
                     row.style.display = 'none';
                 }}
             }});
+            
+            // Update result count
+            updateResultCount();
+        }}
+
+        function updateResultCount() {{
+            const visibleRows = document.querySelectorAll('#dataTable tbody tr:not([style*="display: none"])');
+            const totalRows = document.querySelectorAll('#dataTable tbody tr').length;
+            
+            // You could add a result counter here if desired
+            console.log(`Showing ${{visibleRows.length}} of ${{totalRows}} files`);
+        }}
+
+        function exportToCSV() {{
+            const table = document.getElementById('dataTable');
+            const rows = Array.from(table.querySelectorAll('tr:not([style*="display: none"])'));
+            
+            let csv = [];
+            rows.forEach(row => {{
+                const cells = Array.from(row.querySelectorAll('th, td'));
+                const rowData = cells.map(cell => {{
+                    let text = cell.textContent.trim();
+                    // Escape quotes and wrap in quotes if contains comma
+                    if (text.includes(',') || text.includes('"') || text.includes('\\n')) {{
+                        text = '"' + text.replace(/"/g, '""') + '"';
+                    }}
+                    return text;
+                }});
+                csv.push(rowData.join(','));
+            }});
+            
+            const csvContent = csv.join('\\n');
+            downloadFile(csvContent, 'recycle_bin_analysis.csv', 'text/csv');
+        }}
+
+        function exportToJSON() {{
+            const table = document.getElementById('dataTable');
+            const headers = Array.from(table.querySelectorAll('th')).map(th => th.textContent.trim());
+            const rows = Array.from(table.querySelectorAll('tbody tr:not([style*="display: none"])'));
+            
+            const jsonData = {{
+                exportInfo: {{
+                    timestamp: new Date().toISOString(),
+                    totalFiles: rows.length,
+                    exportType: 'filtered_data'
+                }},
+                files: rows.map(row => {{
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    const fileData = {{}};
+                    headers.forEach((header, index) => {{
+                        fileData[header.toLowerCase().replace(/\\s+/g, '_')] = cells[index] ? cells[index].textContent.trim() : '';
+                    }});
+                    return fileData;
+                }})
+            }};
+            
+            downloadFile(JSON.stringify(jsonData, null, 2), 'recycle_bin_analysis.json', 'application/json');
+        }}
+
+        function printReport() {{
+            // Create a print-friendly version
+            const printWindow = window.open('', '_blank');
+            const originalContent = document.querySelector('.container').innerHTML;
+            
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Recycle Bin Analysis Report</title>
+                    <style>
+                        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                        .header {{ background: #1e293b; color: white; padding: 20px; text-align: center; }}
+                        .content {{ padding: 20px; }}
+                        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+                        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                        th {{ background-color: #f2f2f2; }}
+                        @media print {{ 
+                            body {{ margin: 0; }}
+                            .export-buttons {{ display: none; }}
+                        }}
+                    </style>
+                </head>
+                <body>
+                    ${{originalContent}}
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            printWindow.print();
+        }}
+
+        function downloadFile(content, filename, mimeType) {{
+            const blob = new Blob([content], {{ type: mimeType }});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }}
 
         function formatFileSize(bytes) {{
@@ -540,14 +957,44 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             const i = Math.floor(Math.log(bytes) / Math.log(1024));
             return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
         }}
+
+        // Add smooth scrolling for better UX
+        function smoothScrollTo(element) {{
+            element.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+        }}
+
+        // Add loading animation
+        function showLoading() {{
+            const loader = document.createElement('div');
+            loader.id = 'loader';
+            loader.innerHTML = '<div class="spinner"></div>';
+            loader.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(255, 255, 255, 0.9);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+            `;
+            document.body.appendChild(loader);
+        }}
+
+        function hideLoading() {{
+            const loader = document.getElementById('loader');
+            if (loader) {{
+                loader.remove();
+            }}
+        }}
     </script>
 </body>
 </html>"""
 
         # Calculate statistics
         total_size = sum(file_info.get('file_size', 0) for file_info in files_info)
-        text_files = sum(1 for file_info in files_info if file_info.get('can_read_content', False))
-        binary_files = len(files_info) - text_files
         unique_users = len(set(file_info.get('sid_display', '') for file_info in files_info))
         file_types_count = len(extension_stats)
 
@@ -555,7 +1002,7 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
         extension_list_html = ""
         for ext, count in top_extensions:
             percentage = (count / total_files * 100) if total_files > 0 else 0
-            extension_list_html += f'<div class="extension-item"><span>{ext}</span><span>{count} ({percentage:.1f}%)</span></div>'
+            extension_list_html += f'<div class="extension-item"><span class="extension-name">{ext}</span><span class="extension-count">{count} ({percentage:.1f}%)</span></div>'
 
         # Generate table rows
         table_rows = ""
@@ -606,8 +1053,6 @@ def export_to_html(files_info: List[Dict], output_file: str = "recycle_bin_analy
             timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             total_files=len(files_info),
             total_size=formatted_total_size,
-            text_files=text_files,
-            binary_files=binary_files,
             unique_users=unique_users,
             file_types_count=file_types_count,
             chart_labels=chart_labels,
